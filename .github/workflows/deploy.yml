@@ -58,8 +58,9 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
 
-      # Functions require Firebase Blaze; ship hosting + rules on Spark first.
+      # Functions need Blaze. Storage needs a one-time Console "Get Started" first.
+      # After Storage is enabled: add storage to --only. After Blaze: add functions.
       - name: Deploy to Firebase
-        run: npx firebase-tools@13 deploy --only hosting,firestore:rules,storage --project freetail7s --non-interactive
+        run: npx firebase-tools@13 deploy --only hosting,firestore:rules --project freetail7s --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
