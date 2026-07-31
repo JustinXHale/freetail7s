@@ -29,12 +29,18 @@ Then set repository secret `FIREBASE_TOKEN` to the printed token.
 | Workflow | When | What |
 |----------|------|------|
 | `.github/workflows/ci.yml` | PR + push to `main` | `npm ci`, functions build, web build |
-| `.github/workflows/deploy.yml` | push to `main` + manual | same build, then `firebase deploy` hosting + rules + functions |
+| `.github/workflows/deploy.yml` | push to `main` + manual | same build, then `firebase deploy` hosting + Firestore/Storage rules |
+
+Cloud Functions deploy needs the Firebase **Blaze** plan. Until then, CI still builds functions, but production deploy skips them. After upgrading:
+
+```yaml
+--only hosting,firestore:rules,storage,functions
+```
 
 ## Firebase project
 
 1. Project id: `freetail7s`
-2. Enable Auth (Google + Apple), Firestore, Storage, Functions, Hosting
+2. Enable Auth (Google + Apple), Firestore, Storage, Hosting (Functions after Blaze upgrade)
 3. Local: copy web app config into `.env.local` from `.env.example`
 4. After first Hosting deploy, add `freetail7s.web.app` (and custom domain) to Auth authorized domains
 5. Seed when ready: `npm run seed` (service account / emulators)
