@@ -29,7 +29,9 @@ Then set repository secret `FIREBASE_TOKEN` to the printed token.
 | Workflow | When | What |
 |----------|------|------|
 | `.github/workflows/ci.yml` | PR + push to `main` | `npm ci`, functions build, web build |
-| `.github/workflows/deploy.yml` | push to `main` + manual | same build, then `firebase deploy` hosting + rules + functions |
+| `.github/workflows/deploy.yml` | push to `main` + manual | web build, then `firebase deploy` hosting + Firestore rules |
+
+Cloud Functions are **not** deployed until the Firebase project is on the **Blaze** plan (Spark cannot enable Artifact Registry / Cloud Build). After upgrading, change deploy `--only` to `hosting,firestore:rules,functions`.
 
 ## Firebase project
 

@@ -1,15 +1,13 @@
-# Deploy Hosting + Firestore rules + Cloud Functions on push to main.
-# Same pattern as MatchReadyTX.
+# Deploy Hosting + Firestore rules on push to main.
+# Cloud Functions require the Blaze plan — omit until the project is upgraded.
+# Same FIREBASE_TOKEN pattern as MatchReadyTX.
 #
-# One-time setup (GitHub → Settings → Secrets and variables → Actions):
-#   FIREBASE_TOKEN          — from `firebase login:ci` (required for deploy)
-#   VITE_FIREBASE_API_KEY
-#   VITE_FIREBASE_AUTH_DOMAIN   — prefer freetail7s.web.app (Hosting host) in production
-#   VITE_FIREBASE_PROJECT_ID
-#   VITE_FIREBASE_STORAGE_BUCKET
-#   VITE_FIREBASE_MESSAGING_SENDER_ID
-#   VITE_FIREBASE_APP_ID
-#   VITE_FIREBASE_MEASUREMENT_ID  — optional
+# Secrets (GitHub → Settings → Secrets and variables → Actions):
+#   FIREBASE_TOKEN          — from `firebase login:ci`
+#   VITE_FIREBASE_*         — web app config
+#
+# After upgrading to Blaze, change --only to:
+#   hosting,firestore:rules,functions
 name: Deploy
 
 on:
@@ -39,14 +37,6 @@ jobs:
       - name: Install app dependencies
         run: npm ci
 
-      - name: Install functions dependencies
-        run: npm ci
-        working-directory: functions
-
-      - name: Build Cloud Functions
-        run: npm run build
-        working-directory: functions
-
       - name: Build web app
         run: npm run build
         env:
@@ -59,6 +49,7 @@ jobs:
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
 
       - name: Deploy to Firebase
-        run: npx firebase-tools@13 deploy --only hosting,firestore:rules,functions --project freetail7s --non-interactive
+        # Spark: hosting + rules only. Functions need Blaze.
+        run: npx firebase-tools@13 deploy --only hosting,firestore:rules --project freetail7s --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
