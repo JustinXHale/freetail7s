@@ -1,0 +1,100 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.btn--md {
+  padding: 0.7rem 1.15rem;
+  font-size: 0.95rem;
+}
+
+.btn--lg {
+  padding: 0.9rem 1.5rem;
+  font-size: 1.05rem;
+}
+
+.btn--primary {
+  background: var(--color-brand-primary);
+  color: var(--color-text-on-light);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--color-brand-primary-hover);
+  color: var(--color-text-on-light);
+}
+
+.btn--secondary {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  border-color: var(--color-brand-primary);
+  color: var(--color-brand-primary);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+/* Light surfaces (home light sections + admin main) */
+.section--light .btn--ghost,
+.admin-shell .btn--ghost {
+  color: var(--color-text-on-light-secondary);
+}
+
+.section--light .btn--ghost:hover:not(:disabled),
+.section--light .btn--ghost:focus-visible,
+.admin-shell .btn--ghost:hover:not(:disabled),
+.admin-shell .btn--ghost:focus-visible {
+  color: var(--color-text-on-light);
+}
+
+.section--light .btn--secondary,
+.admin-shell .btn--secondary {
+  color: var(--color-text-on-light);
+  border-color: var(--color-border-on-light);
+}
+
+.section--light .btn--secondary:hover:not(:disabled),
+.admin-shell .btn--secondary:hover:not(:disabled) {
+  border-color: var(--color-text-on-light);
+  color: var(--color-text-on-light);
+  background: rgba(var(--color-brand-secondary-rgb), 0.06);
+}
+
+.btn--danger {
+  background: var(--color-error);
+  color: white;
+}

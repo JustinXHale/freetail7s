@@ -1,0 +1,228 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function role() {
+      return signedIn() ? userDoc().role : '';
+    }
+
+    function isOwner() {
+      return signedIn() && role() in ['admin', 'owner'];
+    }
+
+    function isAdmin() {
+      return signedIn() && role() in ['admin', 'owner', 'eventAdmin'];
+    }
+
+    function isStaff() {
+      return signedIn() && role() in ['admin', 'owner', 'eventAdmin', 'scorekeeper', 'contentEditor'];
+    }
+
+    function canScore() {
+      return signedIn() && role() in ['admin', 'owner', 'eventAdmin', 'scorekeeper'];
+    }
+
+    function canContent() {
+      return signedIn() && role() in ['admin', 'owner', 'eventAdmin', 'contentEditor'];
+    }
+
+    function isTeamManagerFor(teamId) {
+      return signedIn()
+        && role() == 'teamManager'
+        && userDoc().teamId == teamId;
+    }
+
+    function isSelfServeRole(value) {
+      return value in ['fan', 'teamManager', 'referee'];
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isStaff());
+      // New accounts start as fan with onboarding incomplete. Admin is never self-assigned.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.role == 'fan'
+        && request.resource.data.onboardingComplete == false;
+      allow update: if isOwner()
+        || (signedIn()
+            && request.auth.uid == uid
+            && (
+              // Complete onboarding once — choose fan / teamManager / referee only
+              (resource.data.onboardingComplete != true
+                && request.resource.data.onboardingComplete == true
+                && isSelfServeRole(request.resource.data.role)
+                && request.resource.data.firstName is string
+                && request.resource.data.firstName.size() > 0
+                && request.resource.data.firstName.size() < 80
+                && request.resource.data.lastName is string
+                && request.resource.data.lastName.size() > 0
+                && request.resource.data.lastName.size() < 80
+                && request.resource.data.teamId == resource.data.teamId)
+              // After onboarding: profile edits only — role and team stay locked
+              || (resource.data.onboardingComplete == true
+                && request.resource.data.onboardingComplete == true
+                && request.resource.data.role == resource.data.role
+                && request.resource.data.teamId == resource.data.teamId)
+            ));
+      allow delete: if isOwner();
+    }
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /divisions/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /organizations/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /teams/{id} {
+      allow read: if resource.data.published == true || isStaff() || isTeamManagerFor(id);
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (isTeamManagerFor(id)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['description', 'logoUrl', 'location', 'updatedAt']));
+    }
+
+    match /applications/{id} {
+      allow read: if isStaff()
+        || (signedIn() && resource.data.submittedByUid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'eventId', 'organizationName', 'teamName', 'divisionCode',
+          'contactName', 'contactEmail', 'status', 'createdAt', 'submittedByUid'
+        ])
+        && request.resource.data.submittedByUid == request.auth.uid
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.contactEmail is string
+        && request.resource.data.teamName is string
+        && request.resource.data.teamName.size() > 0
+        && request.resource.data.teamName.size() < 120
+        && (!('honeypot' in request.resource.data)
+            || request.resource.data.honeypot == '');
+      allow update, delete: if isAdmin();
+    }
+
+    match /refereeApplications/{id} {
+      allow read: if isStaff()
+        || (signedIn() && resource.data.submittedByUid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'eventId', 'firstName', 'lastName', 'email', 'phone',
+          'mailingAddress', 'yearsOfficiating', 'divisionCodes', 'positions',
+          'refereeSociety', 'highestSevensCompetition', 'highestSevensScope',
+          'status', 'createdAt', 'submittedByUid'
+        ])
+        && request.resource.data.submittedByUid == request.auth.uid
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.email is string
+        && request.resource.data.firstName is string
+        && request.resource.data.firstName.size() > 0
+        && request.resource.data.firstName.size() < 80
+        && request.resource.data.lastName is string
+        && request.resource.data.lastName.size() > 0
+        && request.resource.data.lastName.size() < 80
+        && request.resource.data.positions is list
+        && request.resource.data.positions.size() > 0
+        && request.resource.data.divisionCodes is list
+        && request.resource.data.divisionCodes.size() > 0
+        && (!('honeypot' in request.resource.data)
+            || request.resource.data.honeypot == '');
+      allow update, delete: if isAdmin();
+    }
+
+    match /pools/{id} {
+      allow read: if resource.data.published == true || isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /matches/{id} {
+      allow read: if resource.data.published == true || isStaff();
+      allow create, delete: if isAdmin();
+      allow update: if canScore() || isAdmin();
+    }
+
+    match /standings/{id} {
+      allow read: if true;
+      allow write: if canScore() || isAdmin();
+    }
+
+    match /mvpNominees/{id} {
+      allow read: if resource.data.published == true || isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /mvpVotes/{id} {
+      allow read: if isStaff();
+      allow create: if request.resource.data.keys().hasAll([
+          'eventId', 'nomineeId', 'voterKey', 'createdAt'
+        ])
+        && request.resource.data.voterKey is string
+        && request.resource.data.voterKey.size() > 8;
+      allow update, delete: if false;
+    }
+
+    match /announcements/{id} {
+      allow read: if resource.data.state == 'published' || canContent() || isAdmin();
+      allow write: if canContent() || isAdmin();
+    }
+
+    match /sponsors/{id} {
+      allow read: if resource.data.published == true || canContent() || isAdmin();
+      allow write: if canContent() || isAdmin();
+    }
+
+    match /faq/{id} {
+      allow read: if resource.data.published == true || canContent() || isAdmin();
+      allow write: if canContent() || isAdmin();
+    }
+
+    match /content/{id} {
+      allow read: if resource.data.state == 'published' || canContent() || isAdmin();
+      allow write: if canContent() || isAdmin();
+    }
+
+    match /contactMessages/{id} {
+      allow read: if isStaff();
+      allow create: if request.resource.data.keys().hasAll([
+          'name', 'email', 'subject', 'message', 'createdAt'
+        ])
+        && request.resource.data.message.size() < 5000
+        && (!('honeypot' in request.resource.data)
+            || request.resource.data.honeypot == '');
+      allow update, delete: if isAdmin();
+    }
+
+    match /emailSignups/{id} {
+      allow read: if isStaff();
+      allow create: if request.resource.data.keys().hasAll(['email', 'createdAt', 'source'])
+        && request.resource.data.email is string;
+      allow update, delete: if isAdmin();
+    }
+
+    match /operations/{id} {
+      allow read, write: if isStaff();
+    }
+
+    match /auditLogs/{id} {
+      allow read: if isAdmin();
+      allow create: if isStaff();
+      allow update, delete: if false;
+    }
+  }
+}

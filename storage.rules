@@ -1,0 +1,41 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isStaff() {
+      return signedIn() && role() in ['owner', 'eventAdmin', 'scorekeeper', 'contentEditor'];
+    }
+
+    function isAdmin() {
+      return signedIn() && role() in ['owner', 'eventAdmin'];
+    }
+
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isStaff()
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /teams/{teamId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin()
+        || (signedIn()
+            && role() == 'teamManager'
+            && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.teamId == teamId
+            && request.resource.size < 5 * 1024 * 1024
+            && request.resource.contentType.matches('image/.*'));
+    }
+
+    match /private/{allPaths=**} {
+      allow read, write: if isStaff();
+    }
+  }
+}
