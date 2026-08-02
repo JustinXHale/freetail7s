@@ -42,14 +42,14 @@ export const DEFAULT_FAQS = [
     id: 'who-can-apply',
     question: 'Who can apply to Freetail 7s?',
     answer:
-      'Qualified Premier and Elite U18 teams may apply. Acceptance is by invitation and application review. Capacity is eight teams per division.',
+      'Qualified Premier and Elite U18 teams may apply. Acceptance is by invitation and application review. Capacity is eight teams per division. See Tournament rules for age eligibility and Premier 19+ requirements.',
     order: 1,
   },
   {
     id: 'entry-fee',
     question: 'What is the entry fee?',
     answer:
-      'The working entry fee is $700 per team. Final fee and any paired-team or Legacy Ecowear incentives will be confirmed with the event budget. Fees are due in full by December 1, 2026.',
+      'Base entry fee is $700 per team, due in full by November 20, 2026. Same-umbrella or approved affiliate teams: $650 each for two divisions, $625 for three, $600 for four (locked once accepted). Legacy Ecowear Freetail custom kit package: additional $50 off that team only.',
     order: 2,
   },
   {
@@ -70,8 +70,29 @@ export const DEFAULT_FAQS = [
     id: 'u18',
     question: 'Are there special requirements for Elite U18 divisions?',
     answer:
-      'Yes. Guardian/waiver workflows and photo consent policies apply. Private roster and contact information for U18 players will not be published on the public site.',
+      'Players must be born on or after 1 September 2007 (up to two over-age waivers born no earlier than 1 June 2007, TD approval). Guardian/waiver and photo consent apply. Private roster and contact information for U18 players will not be published. Full details under Tournament rules.',
     order: 5,
+  },
+  {
+    id: 'prizes',
+    question: 'What do division champions receive?',
+    answer:
+      'A free set of 13 kits, plus a refund of that team’s 2027 entry fee or free entry to next year’s Freetail 7s (winner’s choice).',
+    order: 6,
+  },
+  {
+    id: 'refunds',
+    question: 'What is the withdrawal and refund policy?',
+    answer:
+      'Up to 75% refund through November 20, 2026; then 25 percentage points less each week (75% → 50% → 25% → 0%). Full refund if a suitable replacement team is found. Force majeure at the tournament director’s discretion. Fee and refund details are on the Apply page; also see Terms.',
+    order: 7,
+  },
+  {
+    id: 'division-drop',
+    question: 'Can a division be cancelled if it does not fill?',
+    answer:
+      'Yes. Any division may be dropped if there are not enough teams to fill the spots. Affected teams will be notified at least 30 days in advance. No team is fully accepted until payment has been received in full.',
+    order: 8,
   },
 ]
 

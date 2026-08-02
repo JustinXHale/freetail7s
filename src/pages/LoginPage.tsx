@@ -139,9 +139,9 @@ export function LoginPage() {
       )}
       <p className="auth-page__fine">
         By continuing you agree to the{' '}
-        <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy</Link>{' '}
-        notices. Admin access is assigned by organizers — it is not available in
-        role selection.
+        <Link to="/terms">Terms</Link>, <Link to="/privacy">Privacy</Link>, and{' '}
+        <Link to="/teams/rules">Tournament rules</Link> notices. Admin access is
+        assigned by organizers — it is not available in role selection.
       </p>
       {user ? (
         <Button variant="ghost" onClick={() => void signOut()}>

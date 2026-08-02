@@ -68,27 +68,22 @@
   color: var(--color-text);
 }
 
-/* Light surfaces (home light sections + admin main) */
-.section--light .btn--ghost,
-.admin-shell .btn--ghost {
+/* Light surfaces only — admin is dark; do not apply navy-on-light here */
+.section--light .btn--ghost {
   color: var(--color-text-on-light-secondary);
 }
 
 .section--light .btn--ghost:hover:not(:disabled),
-.section--light .btn--ghost:focus-visible,
-.admin-shell .btn--ghost:hover:not(:disabled),
-.admin-shell .btn--ghost:focus-visible {
+.section--light .btn--ghost:focus-visible {
   color: var(--color-text-on-light);
 }
 
-.section--light .btn--secondary,
-.admin-shell .btn--secondary {
+.section--light .btn--secondary {
   color: var(--color-text-on-light);
   border-color: var(--color-border-on-light);
 }
 
-.section--light .btn--secondary:hover:not(:disabled),
-.admin-shell .btn--secondary:hover:not(:disabled) {
+.section--light .btn--secondary:hover:not(:disabled) {
   border-color: var(--color-text-on-light);
   color: var(--color-text-on-light);
   background: rgba(var(--color-brand-secondary-rgb), 0.06);

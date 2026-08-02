@@ -243,13 +243,13 @@ export const PAGE_PHOTOS = {
   results: WINNERS_2023[1],
   brackets: WINNERS_2022[5],
   tickets: ARCHIVE_ACTION_PHOTOS[6],
-  sponsors: ARCHIVE_ACTION_PHOTOS[7],
+  sponsors: FEATURED_PHOTOS[6],
   faq: ARCHIVE_ACTION_PHOTOS[3],
   contact: FEATURED_PHOTOS[3],
   updates: ARCHIVE_ACTION_PHOTOS[6],
   login: ARCHIVE_ACTION_PHOTOS[0],
   teamPortal: FEATURED_PHOTOS[7],
-  privacy: ARCHIVE_ACTION_PHOTOS[7],
+  privacy: ARCHIVE_ACTION_PHOTOS[5],
   terms: FEATURED_PHOTOS[6],
 } as const satisfies Record<string, TournamentPhoto>
 

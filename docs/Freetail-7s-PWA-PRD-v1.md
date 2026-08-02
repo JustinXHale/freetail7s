@@ -97,10 +97,11 @@ Every team finishes with a final placement from first through eighth.
 
 ### Registration
 
-- Working standard entry fee: $700 per team
-- Final fee and discounts will be confirmed after the full event budget is completed.
-- Registration fees are due in full by December 1, 2026.
-- Potential incentives include paired boys/girls or men/women entries and qualifying Legacy EcoWear kit orders.
+- Entry fee: **$700** per team, due in full by November 20, 2026.
+- Multi-division / approved affiliate discount (locked once accepted): 2 divisions **$650** each; 3 **$625**; 4 **$600**.
+- Legacy Ecowear Freetail custom kit package: additional **$50** off that team only (stacks with multi-division rate).
+- Withdrawals: up to 75% refund through Nov 20, then −25 percentage points each week; full refund if a suitable replacement is found.
+- Public handbook: Tournament rules (`/teams/rules`) — see also `docs/tournament-rules-freetail-2027.md`.
 
 ---
 
@@ -795,7 +796,7 @@ The final voting method remains a product decision. Client-side restrictions alo
 3. Organizer reviews the application.
 4. Application is accepted, waitlisted, or declined.
 5. Accepted team receives registration instructions.
-6. Registration is paid in full by December 1, 2026.
+6. Registration is paid in full by November 20, 2026.
 7. Team completes remaining event requirements.
 8. Team is published after organizer approval.
 
@@ -992,17 +993,20 @@ Privacy-respecting analytics should be preferred.
 
 These decisions do not block initial application architecture, but they affect content and later workflows:
 
-- Final team entry fee
-- Paired-team discount
-- Legacy EcoWear kit credit and qualification
-- Application opening date
-- Acceptance and cancellation terms
-- U18 eligibility and roster rules
-- Final competition-points and tiebreaker rules
+**Decided (published in Tournament rules / site copy):**
+- Final team entry fee → $700
+- Multi-division / affiliate discount → $650 / $625 / $600
+- Legacy / Freetail kit credit → $50 off that team
+- Acceptance and cancellation / refund terms → published ladder
+- U18 eligibility → born on/after 1 Sept 2007; max 2 waivers from 1 June 2007; age-grade only
+- Competition points → 3 / 1 / 0; pool tiebreak H2H → PD → PA → PF → coin; KO sudden death + conversion shootout
+- Championship award → 13 kits + fee refund or next-year entry
+
+**Still open:**
+- Application opening date (rolling; deadline Oct 1, 2026 on site)
 - Payment provider and processing-fee policy
 - Host hotel
 - Spectator ticket prices and provider
-- Championship award package
 - Beer and concession arrangement
 - Broadcast platform and production workflow
 - Exact kickoff schedule

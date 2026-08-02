@@ -11,6 +11,15 @@ import {
 import { EVENT_DATES } from '../data/eventCopy'
 import { PAGE_PHOTOS, RANCH_PHOTOS } from '../data/photos'
 import {
+  ACCEPTANCE_PAYMENT_SUMMARY,
+  DIVISION_VIABILITY_SUMMARY,
+  PRIZE_SUMMARY,
+  REFUND_SUMMARY,
+  RULES_PATH,
+  U18_ELIGIBILITY,
+} from '../data/tournamentRules'
+import { Link } from 'react-router-dom'
+import {
   ClickablePhoto,
   PagePhotoBand,
 } from '../components/media/PhotoLightbox'
@@ -192,6 +201,10 @@ export function FaqPage() {
     <div className="container section" style={{ maxWidth: 720 }}>
       <PagePhotoBand photo={PAGE_PHOTOS.faq} />
       <h1>FAQ</h1>
+      <p>
+        Competition, eligibility, and prizes are in{' '}
+        <Link to={RULES_PATH}>Tournament rules</Link>.
+      </p>
       {faqs.map((f) => (
         <details
           key={f.id}
@@ -329,8 +342,13 @@ export function PrivacyPage() {
       <p>
         Freetail 7s collects application and contact information to run the
         tournament. Application data stays private. U18 contact and guardian
-        details are not published. Fan MVP votes use a device key for integrity
-        and are not sold.
+        details are not published on the public site. Fan MVP votes use a
+        device key for integrity and are not sold.
+      </p>
+      <p>
+        Elite U18: {U18_ELIGIBILITY.summary} See{' '}
+        <Link to={RULES_PATH}>Tournament rules</Link> for full eligibility and
+        safeguarding notes.
       </p>
       <p>
         Sign-in uses Google or Apple through Firebase Auth. Roles are stored in
@@ -347,13 +365,25 @@ export function TermsPage() {
       <PagePhotoBand photo={PAGE_PHOTOS.terms} />
       <h1>Terms</h1>
       <p>
-        Submitting an application does not guarantee acceptance. Entry fees,
-        cancellation terms, and eligibility rules will be confirmed before
-        payment is collected. Published schedules and results on this site are
-        the official source during the event.
+        Submitting an application does not guarantee acceptance. Entry is by
+        invitation after review. Published schedules and results on this site
+        are the official source during the event.
       </p>
       <p>
         Tournament dates: {EVENT_DATES.friday} through {EVENT_DATES.sunday}.
+        Base entry fee is $700 per team, due in full by{' '}
+        {EVENT_DATES.paymentDeadline}. Multi-division discounts, kit credit,
+        withdrawals, refunds, and prizes are on the{' '}
+        <Link to="/apply">Apply</Link> page. {ACCEPTANCE_PAYMENT_SUMMARY}{' '}
+        {DIVISION_VIABILITY_SUMMARY}
+      </p>
+      <p>Withdrawals and refunds: {REFUND_SUMMARY}</p>
+      <p>Prizes: {PRIZE_SUMMARY}</p>
+      <p>
+        By applying or participating, teams agree to the{' '}
+        <Link to={RULES_PATH}>Tournament rules</Link>, these terms, the fee
+        terms on <Link to="/apply">Apply</Link>, and the{' '}
+        <Link to="/privacy">Privacy</Link> policy.
       </p>
     </div>
   )

@@ -43,13 +43,13 @@ img {
 }
 
 a {
-  color: var(--color-brand-primary);
+  color: var(--color-link);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.15em;
 }
 
 a:hover {
-  color: var(--color-brand-primary-hover);
+  color: var(--color-link-hover);
 }
 
 h1,
@@ -123,14 +123,14 @@ textarea {
   color: var(--color-text-on-light-secondary);
 }
 
-/* Yellow links fail on light surfaces — use navy */
+/* Yellow links fail on light surfaces — use navy link tokens */
 .section--light a:not(.btn) {
-  color: var(--color-brand-secondary);
+  color: var(--color-link-on-light);
 }
 
 .section--light a:not(.btn):hover,
 .section--light a:not(.btn):focus-visible {
-  color: var(--color-brand-secondary-deep);
+  color: var(--color-link-on-light-hover);
 }
 
 .tabular {

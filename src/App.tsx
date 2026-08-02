@@ -6,8 +6,8 @@ import { AdminLayout } from './components/layout/AdminLayout'
 import { HomePage } from './pages/HomePage'
 import { TournamentPage } from './pages/TournamentPage'
 import { ApplyPage, RefereeApplyPage, TeamApplyPage } from './pages/ApplyPage'
-import { TeamsPage } from './pages/TeamsPage'
 import { TeamDetailPage } from './pages/TeamDetailPage'
+import { TournamentRulesPage } from './pages/TournamentRulesPage'
 import {
   BracketPage,
   PoolsStandingsPage,
@@ -71,7 +71,11 @@ export default function App() {
                   </RequireAuth>
                 }
               />
-              <Route path="teams" element={<TeamsPage />} />
+              <Route
+                path="teams"
+                element={<Navigate to="/brackets" replace />}
+              />
+              <Route path="teams/rules" element={<TournamentRulesPage />} />
               <Route path="teams/:teamSlug" element={<TeamDetailPage />} />
               <Route path="pools" element={<PoolsStandingsPage />} />
               <Route path="standings" element={<PoolsStandingsPage />} />

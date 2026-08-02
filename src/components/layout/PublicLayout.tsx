@@ -6,6 +6,7 @@ import { isAdmin } from '../../types/models'
 import logo from '../../assets/logos/ft7s-full.png'
 import { PhotoViewerProvider } from '../media/PhotoLightbox'
 import './PublicLayout.css'
+import './JumpLinks.css'
 
 const ABOUT_LINKS = [
   { to: '/about', label: 'History' },
@@ -13,10 +14,19 @@ const ABOUT_LINKS = [
   { to: '/faq', label: 'FAQ' },
 ]
 
+const TOURNAMENT_LINKS = [
+  { to: '/visit', label: 'Facility' },
+  { to: '/schedule', label: 'Schedule' },
+  { to: '/brackets', label: 'Teams & brackets' },
+  { to: '/teams/rules', label: 'Tournament rules' },
+]
+
 export function PublicLayout() {
   const [open, setOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [tournamentOpen, setTournamentOpen] = useState(false)
   const aboutRef = useRef<HTMLLIElement>(null)
+  const tournamentRef = useRef<HTMLLIElement>(null)
   const { role, user } = useAuth()
   const event = useEvent()
   const { isStale } = useOfflineCacheFlag()
@@ -25,6 +35,7 @@ export function PublicLayout() {
   useEffect(() => {
     setOpen(false)
     setAboutOpen(false)
+    setTournamentOpen(false)
   }, [location.pathname])
 
   useEffect(() => {
@@ -32,9 +43,15 @@ export function PublicLayout() {
       if (!aboutRef.current?.contains(e.target as Node)) {
         setAboutOpen(false)
       }
+      if (!tournamentRef.current?.contains(e.target as Node)) {
+        setTournamentOpen(false)
+      }
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setAboutOpen(false)
+      if (e.key === 'Escape') {
+        setAboutOpen(false)
+        setTournamentOpen(false)
+      }
     }
     document.addEventListener('click', onDocClick)
     document.addEventListener('keydown', onKey)
@@ -45,6 +62,10 @@ export function PublicLayout() {
   }, [])
 
   const aboutActive = ABOUT_LINKS.some((l) => location.pathname === l.to)
+  const tournamentActive =
+    location.pathname === '/brackets' ||
+    location.pathname.startsWith('/teams') ||
+    TOURNAMENT_LINKS.some((l) => location.pathname === l.to)
 
   return (
     <PhotoViewerProvider>
@@ -118,38 +139,40 @@ export function PublicLayout() {
                     ))}
                   </ul>
                 </li>
-                <li>
-                  <NavLink
-                    to="/visit"
-                    onClick={() => setOpen(false)}
-                    className={({ isActive }) =>
-                      isActive ? 'is-active' : undefined
-                    }
+                <li
+                  className={`nav-dropdown ${tournamentOpen ? 'is-open' : ''}`}
+                  ref={tournamentRef}
+                >
+                  <span className="nav-dropdown__label">
+                    2027 Tournament Info
+                  </span>
+                  <button
+                    type="button"
+                    className={`nav-dropdown__trigger ${tournamentActive ? 'is-active' : ''}`}
+                    aria-expanded={tournamentOpen}
+                    aria-haspopup="true"
+                    onClick={() => setTournamentOpen((v) => !v)}
                   >
-                    Facility
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/teams"
-                    onClick={() => setOpen(false)}
-                    className={({ isActive }) =>
-                      isActive ? 'is-active' : undefined
-                    }
-                  >
-                    Teams
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/schedule"
-                    onClick={() => setOpen(false)}
-                    className={({ isActive }) =>
-                      isActive ? 'is-active' : undefined
-                    }
-                  >
-                    Schedule
-                  </NavLink>
+                    2027 Tournament Info
+                  </button>
+                  <ul className="nav-dropdown__menu">
+                    {TOURNAMENT_LINKS.map((item) => (
+                      <li key={item.to}>
+                        <NavLink
+                          to={item.to}
+                          onClick={() => {
+                            setTournamentOpen(false)
+                            setOpen(false)
+                          }}
+                          className={({ isActive }) =>
+                            isActive ? 'is-active' : undefined
+                          }
+                        >
+                          {item.label}
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               </ul>
               <div className="site-nav__actions">
@@ -203,10 +226,13 @@ export function PublicLayout() {
                   <Link to="/visit">Facility</Link>
                 </li>
                 <li>
-                  <Link to="/teams">Teams</Link>
+                  <Link to="/schedule">Schedule</Link>
                 </li>
                 <li>
-                  <Link to="/schedule">Schedule</Link>
+                  <Link to="/brackets">Teams &amp; brackets</Link>
+                </li>
+                <li>
+                  <Link to="/teams/rules">Tournament rules</Link>
                 </li>
                 <li>
                   <Link to="/apply">Apply</Link>

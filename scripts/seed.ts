@@ -38,7 +38,7 @@ async function main() {
       venueState: 'Texas',
       titleSponsor: 'Legacy EcoWear',
       entryFee: 700,
-      paymentDeadline: '2026-12-01',
+      paymentDeadline: '2026-11-20',
       applicationOpen: true,
       mvpVotingOpen: false,
       mvpMode: 'per-division',

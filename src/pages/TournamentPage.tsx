@@ -1,8 +1,18 @@
+import { Link } from 'react-router-dom'
 import { ButtonLink } from '../components/ui/Button'
+import { JumpLinks } from '../components/layout/JumpLinks'
 import { EVENT_DATES } from '../data/eventCopy'
 import { useEvent } from '../hooks/useTournament'
 import { PAGE_PHOTOS, WINNERS_2022, WINNERS_2023 } from '../data/photos'
 import { PagePhotoBand, PhotoGrid } from '../components/media/PhotoLightbox'
+import { PRIZE_SUMMARY, RULES_PATH } from '../data/tournamentRules'
+
+const HISTORY_JUMPS = [
+  { id: 'past', label: 'Past tournaments' },
+  { id: 'y2027', label: '2027' },
+  { id: 'weekend', label: 'Weekend plan' },
+  { id: 'entry', label: 'Entry' },
+]
 
 /** History / about the tournament (nav: About → History) */
 export function TournamentPage() {
@@ -15,6 +25,7 @@ export function TournamentPage() {
         label="Tournament history photos"
       />
       <h1>History</h1>
+      <JumpLinks links={HISTORY_JUMPS} />
       <p>
         Freetail Events started in March 2019 in Austin, Texas, to run a
         world-class rugby tournament: Freetail 7s. The name comes from the
@@ -25,7 +36,9 @@ export function TournamentPage() {
         at {event.venueName}. Title sponsor and event host: Legacy Ecowear.
       </p>
 
-      <h2>2019</h2>
+      <h2 id="past" className="jump-target">
+        2019
+      </h2>
       <p>
         The first tournament fielded 8 men’s and 3 women’s teams (11 total).
         Phoenix Rugby (powered by Scion) won the women’s championship over the
@@ -33,10 +46,14 @@ export function TournamentPage() {
         Rosa, California). Referee kit sponsors: Techline Tools and Smartish.
       </p>
 
-      <h2>2020</h2>
+      <h2 id="y2020" className="jump-target">
+        2020
+      </h2>
       <p>No tournament — Freetail Events did not stage an event in 2020.</p>
 
-      <h2>2021</h2>
+      <h2 id="y2021" className="jump-target">
+        2021
+      </h2>
       <p>
         Eight men’s teams competed, and the women’s bracket grew to 7 (15 teams
         total). Chicago Lions beat 2019 champions Phoenix in the women’s cup.
@@ -48,7 +65,9 @@ export function TournamentPage() {
         Smartish and 4th Tap Brewing Co-Op.
       </p>
 
-      <h2>2022</h2>
+      <h2 id="y2022" className="jump-target">
+        2022
+      </h2>
       <p>
         Freetail returned with club sides chasing cup, plate, and bowl hardware
         across the men’s and women’s brackets. National Athletic Village took
@@ -56,7 +75,9 @@ export function TournamentPage() {
       </p>
       <PhotoGrid photos={WINNERS_2022} />
 
-      <h2>2023</h2>
+      <h2 id="y2023" className="jump-target">
+        2023
+      </h2>
       <p>
         Another New Year weekend of sevens — champions, runners-up, and
         placement winners across men’s and women’s competition, capped by
@@ -64,13 +85,17 @@ export function TournamentPage() {
       </p>
       <PhotoGrid photos={WINNERS_2023} />
 
-      <h2>2027</h2>
+      <h2 id="y2027" className="jump-target">
+        2027
+      </h2>
       <p>
         Premier Men, Premier Women, Elite U18 Boys, and Elite U18 Girls — eight
         teams each, with placements first through eighth across the weekend.
       </p>
 
-      <h2>Weekend plan</h2>
+      <h2 id="weekend" className="jump-target">
+        Weekend plan
+      </h2>
       <ul>
         <li>
           <strong>{EVENT_DATES.friday}:</strong> Elite U18 Boys and Girls pool
@@ -86,14 +111,25 @@ export function TournamentPage() {
         </li>
       </ul>
 
-      <h2>Entry</h2>
+      <h2 id="entry" className="jump-target">
+        Entry
+      </h2>
       <p>
-        Working entry fee ${event.entryFee} per team. Fees are due in full by{' '}
-        {EVENT_DATES.paymentDeadline}.
+        Entry fee ${event.entryFee} per team (multi-division and kit discounts
+        available). Fees are due in full by {EVENT_DATES.paymentDeadline}. Fee
+        tables, refunds, and prizes are on <Link to="/apply">Apply</Link>.
+      </p>
+      <p>{PRIZE_SUMMARY}</p>
+      <p>
+        On-field eligibility and format:{' '}
+        <Link to={RULES_PATH}>Tournament rules</Link>.
       </p>
 
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         <ButtonLink to="/apply">Apply</ButtonLink>
+        <ButtonLink to={RULES_PATH} variant="secondary">
+          Tournament rules
+        </ButtonLink>
         <ButtonLink to="/faq" variant="secondary">
           FAQ
         </ButtonLink>

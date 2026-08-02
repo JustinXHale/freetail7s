@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Field, TextInput, TextSelect } from '../../components/ui/Field'
 import { useDemo } from '../../context/useDemo'
@@ -82,15 +83,42 @@ export function AdminApplicationsPage() {
       'teamName',
       'organizationName',
       'divisionCode',
+      'contactName',
       'contactEmail',
+      'contactPhone',
+      'hometown',
+      'mailingStreet',
+      'mailingCity',
+      'mailingState',
+      'mailingPostal',
+      'instagram',
+      'facebook',
+      'legacyKitInterest',
+      'batchId',
       'status',
       'createdAt',
     ]
     const rows = applications.map((a) =>
-      header
-        .map((h) =>
-          JSON.stringify(String((a as unknown as Record<string, unknown>)[h] ?? '')),
-        )
+      [
+        a.teamName,
+        a.organizationName,
+        a.divisionCode,
+        a.contactName,
+        a.contactEmail,
+        a.contactPhone,
+        a.hometown,
+        a.mailingAddress.street,
+        a.mailingAddress.city,
+        a.mailingAddress.state,
+        a.mailingAddress.postalCode,
+        a.instagram ?? '',
+        a.facebook ?? '',
+        a.legacyKitInterest,
+        a.batchId ?? '',
+        a.status,
+        a.createdAt,
+      ]
+        .map((v) => JSON.stringify(String(v)))
         .join(','),
     )
     const blob = new Blob([[header.join(','), ...rows].join('\n')], {
@@ -113,10 +141,14 @@ export function AdminApplicationsPage() {
       'yearsOfficiating',
       'refereeGrade',
       'refereeSociety',
+      'recommendationContact',
+      'instagram',
+      'facebook',
       'positions',
       'divisionCodes',
       'highestSevensCompetition',
       'highestSevensScope',
+      'matchFootageUrl',
       'status',
       'createdAt',
     ]
@@ -129,10 +161,14 @@ export function AdminApplicationsPage() {
         a.yearsOfficiating,
         a.refereeGrade ?? '',
         a.refereeSociety,
+        a.recommendationContact ?? '',
+        a.instagram ?? '',
+        a.facebook ?? '',
         a.positions.map((p) => REFEREE_POSITION_LABELS[p]).join('; '),
         a.divisionCodes.join('; '),
         SEVENS_COMPETITION_LABELS[a.highestSevensCompetition],
         SEVENS_OFFICIATING_SCOPE_LABELS[a.highestSevensScope],
+        a.matchFootageUrl ?? '',
         a.status,
         a.createdAt,
       ]
@@ -197,12 +233,18 @@ export function AdminApplicationsPage() {
                 <tr key={app.id}>
                   <td>
                     <strong>{app.teamName}</strong>
-                    <div>{app.organizationName}</div>
+                    <div>{app.hometown}</div>
+                    {app.batchId ? (
+                      <div style={{ fontSize: '0.8rem', opacity: 0.75 }}>
+                        Multi-team batch
+                      </div>
+                    ) : null}
                   </td>
                   <td>{app.divisionCode}</td>
                   <td>
                     {app.contactName}
                     <div>{app.contactEmail}</div>
+                    <div>{app.contactPhone}</div>
                   </td>
                   <td>
                     <select
@@ -298,10 +340,17 @@ export function AdminTeamsPage() {
   const { state, setState } = useDemo()
   const [name, setName] = useState('')
   const [divisionCode, setDivisionCode] = useState('premier-men')
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  const editing = state.teams.find((t) => t.id === editingId) ?? null
 
   return (
     <div>
       <h1>Teams</h1>
+      <p>
+        Edit team details here. Coach and player roster forms stay locked
+        (profile shell) until accepted managers get access later.
+      </p>
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -319,9 +368,11 @@ export function AdminTeamsPage() {
                 name,
                 slug,
                 location: 'TBD',
-                published: true,
+                hometown: 'TBD',
+                published: false,
                 paymentStatus: 'unpaid',
                 managerUserIds: [],
+                rosterAccess: 'shell',
                 createdAt: now,
                 updatedAt: now,
               },
@@ -355,8 +406,11 @@ export function AdminTeamsPage() {
           <tr>
             <th>Name</th>
             <th>Division</th>
+            <th>Hometown</th>
             <th>Payment</th>
             <th>Published</th>
+            <th>Roster</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -364,12 +418,248 @@ export function AdminTeamsPage() {
             <tr key={t.id}>
               <td>{t.name}</td>
               <td>{t.divisionCode}</td>
+              <td>{t.hometown ?? t.location}</td>
               <td>{t.paymentStatus}</td>
               <td>{t.published ? 'yes' : 'no'}</td>
+              <td>{t.rosterAccess}</td>
+              <td style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    setEditingId((id) => (id === t.id ? null : t.id))
+                  }
+                >
+                  {editingId === t.id ? 'Close' : 'Edit'}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="danger"
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        `Remove ${t.name} from the tournament list?`,
+                      )
+                    ) {
+                      return
+                    }
+                    setEditingId((id) => (id === t.id ? null : id))
+                    setState((prev) => ({
+                      ...prev,
+                      teams: prev.teams.filter((x) => x.id !== t.id),
+                      pools: prev.pools.map((p) => ({
+                        ...p,
+                        teamIds: p.teamIds.filter((id) => id !== t.id),
+                      })),
+                      matches: prev.matches.map((m) => ({
+                        ...m,
+                        homeTeamId:
+                          m.homeTeamId === t.id ? null : m.homeTeamId,
+                        awayTeamId:
+                          m.awayTeamId === t.id ? null : m.awayTeamId,
+                      })),
+                      standings: prev.standings.filter(
+                        (s) => s.teamId !== t.id,
+                      ),
+                    }))
+                  }}
+                >
+                  Remove
+                </Button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {editing ? (
+        <form
+          key={editing.id}
+          style={{
+            marginTop: 24,
+            padding: 16,
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-bg-elevated)',
+            maxWidth: 560,
+          }}
+          onSubmit={(e) => {
+            e.preventDefault()
+            const fd = new FormData(e.currentTarget)
+            const nextName = String(fd.get('name'))
+            const hometown = String(fd.get('hometown'))
+            const now = new Date().toISOString()
+            setState((prev) => ({
+              ...prev,
+              teams: prev.teams.map((t) =>
+                t.id !== editing.id
+                  ? t
+                  : {
+                      ...t,
+                      name: nextName,
+                      slug: nextName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                      divisionCode: String(fd.get('divisionCode')) as never,
+                      divisionId: String(fd.get('divisionCode')),
+                      hometown,
+                      location: hometown,
+                      website: String(fd.get('website') || '') || undefined,
+                      instagram: String(fd.get('instagram') || '') || undefined,
+                      facebook: String(fd.get('facebook') || '') || undefined,
+                      description:
+                        String(fd.get('description') || '') || undefined,
+                      paymentStatus: String(fd.get('paymentStatus')) as never,
+                      published: fd.get('published') === 'on',
+                      mailingAddress: {
+                        street: String(fd.get('street')),
+                        city: String(fd.get('city')),
+                        state: String(fd.get('state')),
+                        postalCode: String(fd.get('postalCode')),
+                        country: String(fd.get('country') || 'United States'),
+                      },
+                      updatedAt: now,
+                    },
+              ),
+            }))
+          }}
+        >
+          <h2 style={{ marginTop: 0 }}>Edit · {editing.name}</h2>
+          <p style={{ fontSize: '0.9rem' }}>
+            Profile shell — coaches and players attach later when roster access
+            opens for accepted managers.
+          </p>
+          <Field label="Team name" htmlFor="edit-name">
+            <TextInput
+              id="edit-name"
+              name="name"
+              required
+              defaultValue={editing.name}
+            />
+          </Field>
+          <Field label="Division" htmlFor="edit-division">
+            <TextSelect
+              id="edit-division"
+              name="divisionCode"
+              defaultValue={editing.divisionCode}
+            >
+              <option value="premier-men">Premier Men</option>
+              <option value="premier-women">Premier Women</option>
+              <option value="elite-u18-boys">Elite U18 Boys</option>
+              <option value="elite-u18-girls">Elite U18 Girls</option>
+            </TextSelect>
+          </Field>
+          <Field label="Hometown" htmlFor="edit-hometown">
+            <TextInput
+              id="edit-hometown"
+              name="hometown"
+              required
+              defaultValue={editing.hometown ?? editing.location}
+            />
+          </Field>
+          <Field label="Street" htmlFor="edit-street">
+            <TextInput
+              id="edit-street"
+              name="street"
+              defaultValue={editing.mailingAddress?.street ?? ''}
+            />
+          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <Field label="City" htmlFor="edit-city">
+              <TextInput
+                id="edit-city"
+                name="city"
+                defaultValue={editing.mailingAddress?.city ?? ''}
+              />
+            </Field>
+            <Field label="State" htmlFor="edit-state">
+              <TextInput
+                id="edit-state"
+                name="state"
+                defaultValue={editing.mailingAddress?.state ?? ''}
+              />
+            </Field>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <Field label="Postal code" htmlFor="edit-postal">
+              <TextInput
+                id="edit-postal"
+                name="postalCode"
+                defaultValue={editing.mailingAddress?.postalCode ?? ''}
+              />
+            </Field>
+            <Field label="Country" htmlFor="edit-country">
+              <TextInput
+                id="edit-country"
+                name="country"
+                defaultValue={editing.mailingAddress?.country ?? 'United States'}
+              />
+            </Field>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <Field label="Instagram" htmlFor="edit-ig">
+              <TextInput
+                id="edit-ig"
+                name="instagram"
+                defaultValue={editing.instagram ?? ''}
+              />
+            </Field>
+            <Field label="Facebook" htmlFor="edit-fb">
+              <TextInput
+                id="edit-fb"
+                name="facebook"
+                defaultValue={editing.facebook ?? ''}
+              />
+            </Field>
+          </div>
+          <Field label="Website" htmlFor="edit-web">
+            <TextInput
+              id="edit-web"
+              name="website"
+              defaultValue={editing.website ?? ''}
+            />
+          </Field>
+          <Field label="Internal notes / description" htmlFor="edit-desc">
+            <TextInput
+              id="edit-desc"
+              name="description"
+              defaultValue={editing.description ?? ''}
+            />
+          </Field>
+          <Field label="Payment status" htmlFor="edit-pay">
+            <TextSelect
+              id="edit-pay"
+              name="paymentStatus"
+              defaultValue={editing.paymentStatus}
+            >
+              <option value="unpaid">unpaid</option>
+              <option value="partial">partial</option>
+              <option value="paid">paid</option>
+              <option value="waived">waived</option>
+            </TextSelect>
+          </Field>
+          <label className="apply-check" style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="checkbox"
+              name="published"
+              defaultChecked={editing.published}
+            />
+            Published (admin / future public listing)
+          </label>
+          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+            <Button type="submit" size="sm">
+              Save team
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => setEditingId(null)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      ) : null}
     </div>
   )
 }
@@ -725,6 +1015,11 @@ export function AdminAnnouncementsPage() {
   return (
     <div>
       <h1>Announcements</h1>
+      <p>
+        Published announcements appear on the public{' '}
+        <Link to="/updates">Updates</Link> page and as “Latest update” on the
+        homepage.
+      </p>
       <form
         onSubmit={(e) => {
           e.preventDefault()

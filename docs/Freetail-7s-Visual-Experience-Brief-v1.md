@@ -57,27 +57,26 @@ The existing Freetail 7s logo and brand files are the authoritative source for f
 
 The interface should use:
 
-- A near-black, charcoal, or deep night-tone foundation
-- A warm off-white or light neutral for readable content areas
-- Existing Freetail brand colors as primary accents
+- A near-black, charcoal, or deep night-tone foundation (**default for the public site and admin**)
+- A warm off-white or light neutral only for deliberate light bands (`.section--light`)
+- Yellow brand primary as the interactive accent on dark (links, focus, CTAs)
+- Navy brand secondary for text/links **on light surfaces only** — never as text or icons on black (fails WCAG and looks like low-contrast blue)
 - One restrained secondary accent for statuses or live-event emphasis
 - Legacy EcoWear colors only where sponsor identification requires them
 
-Dark backgrounds should be used purposefully for immersive and broadcast-style areas. Longer text, forms, policies, and admin tables may use lighter surfaces for readability.
+**Contrast rule (AA):** pair colors with the surface they sit on. Yellow fails on cream; navy/blue fails on near-black. Use the link tokens in `src/styles/tokens.css` (`--color-link` vs `--color-link-on-light`). Full checklist: [`docs/ACCESSIBILITY-COLOR.md`](./ACCESSIBILITY-COLOR.md).
+
+Dark backgrounds are the default for immersive and broadcast-style areas. Light bands are for specific homepage/content sections — not a second global theme.
 
 The final design tokens should include:
 
-- Background
-- Elevated surface
+- Background / elevated / surface (dark)
 - Light surface
-- Primary text
-- Secondary text
-- Brand primary
-- Brand secondary
-- Live
-- Success
-- Warning
-- Error
+- Primary / secondary / muted text (dark + on-light)
+- Brand primary (yellow) / brand secondary (navy)
+- Link / link-on-light
+- Accent-on-dark
+- Live, success, warning, error
 - Border
 - Focus
 

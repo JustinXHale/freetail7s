@@ -7,6 +7,190 @@
   margin-bottom: var(--space-5);
 }
 
+.apply-info {
+  margin-top: var(--space-7);
+  max-width: 44rem;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.apply-info h2,
+.apply-fees h2 {
+  margin: 0 0 var(--space-3);
+  font-size: 1.5rem;
+}
+
+.apply-info p,
+.apply-fees > p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.apply-info__steps {
+  margin: 0 0 var(--space-4);
+  padding-left: 1.25rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.apply-info__steps li + li {
+  margin-top: 0.65rem;
+}
+
+.apply-info__steps strong {
+  color: var(--color-text);
+}
+
+.apply-fees {
+  margin-top: var(--space-6);
+  max-width: 44rem;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+}
+
+.apply-fees__table {
+  width: 100%;
+  max-width: 28rem;
+  border-collapse: collapse;
+  margin: 0 0 var(--space-4);
+}
+
+.apply-fees__table th,
+.apply-fees__table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.apply-fees__table th:last-child,
+.apply-fees__table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.apply-fees__table th {
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.apply-fees__kit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 11rem);
+  gap: 1.25rem;
+  align-items: stretch;
+  margin: 0 0 var(--space-4);
+  padding: 1.15rem 1.25rem;
+  border-left: 4px solid var(--color-brand-primary);
+  background: color-mix(
+    in srgb,
+    var(--color-brand-primary) 10%,
+    var(--color-bg)
+  );
+}
+
+.apply-fees__kit-eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-primary);
+}
+
+.apply-fees__kit h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.apply-fees__kit-copy p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.apply-fees__kit-copy p + p {
+  margin-top: 0.55rem;
+}
+
+.apply-fees__flyer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 12rem;
+  aspect-ratio: 3 / 4;
+  padding: 0.75rem;
+  border: 1px dashed color-mix(in srgb, var(--color-brand-primary) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-bg) 70%, transparent);
+  text-align: center;
+}
+
+.apply-fees__flyer-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.apply-fees__flyer-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .apply-fees__kit {
+    grid-template-columns: 1fr;
+  }
+
+  .apply-fees__flyer {
+    max-width: 12rem;
+    margin-inline: auto;
+  }
+}
+
+.apply-check--kit {
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 35%, var(--color-border));
+  background: color-mix(
+    in srgb,
+    var(--color-brand-primary) 8%,
+    var(--color-bg)
+  );
+}
+
+.apply-check--kit input {
+  margin-top: 0.2rem;
+}
+
+.apply-fees__notes {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.apply-fees__notes li + li {
+  margin-top: 0.45rem;
+}
+
+.apply-fees__notes strong {
+  color: var(--color-text);
+}
+
+.apply-panel__preview {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
 .apply-panels {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -90,6 +274,53 @@
   max-width: 40rem;
 }
 
+.apply-form--wide,
+.apply-form-page:has(.apply-form--wide) {
+  max-width: 48rem;
+}
+
+.apply-team-cards {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0 0 var(--space-4);
+}
+
+.apply-team-card {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+}
+
+.apply-team-card__summary {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.apply-team-card__summary::-webkit-details-marker {
+  display: none;
+}
+
+.apply-team-card__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-primary);
+}
+
+.apply-team-card__title {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.apply-team-card__body {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
+}
+
 .apply-form-page__back {
   margin: 0 0 var(--space-3);
   font-size: 0.9rem;
@@ -103,10 +334,29 @@
   margin-bottom: 0.35rem;
 }
 
+.apply-form__section-title {
+  margin: var(--space-5) 0 0.35rem;
+  font-size: 1.25rem;
+}
+
+.apply-form__section-lead {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
 .apply-form__row {
   display: grid;
   gap: var(--space-3);
   grid-template-columns: 1fr 1fr;
+}
+
+.apply-form__row--align-start {
+  align-items: start;
+}
+
+.apply-form__row--align-start .apply-fieldset {
+  margin-bottom: 0;
 }
 
 .apply-form__success {

@@ -11,8 +11,7 @@
   color: var(--color-text);
 }
 
-.section--light .field__label,
-.admin-shell .field__label {
+.section--light .field__label {
   color: var(--color-text-on-light);
 }
 
@@ -25,8 +24,7 @@
   color: var(--color-text);
 }
 
-.section--light .field__control,
-.admin-shell .field__control {
+.section--light .field__control {
   background: var(--color-bg-light-elevated);
   color: var(--color-text-on-light);
   border-color: var(--color-border-on-light);
@@ -37,13 +35,22 @@
   resize: vertical;
 }
 
-.section--light .field__hint,
-.admin-shell .field__hint {
+.field__hint {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.section--light .field__hint {
   color: var(--color-text-on-light-secondary);
 }
 
-.section--light .field__error,
-.admin-shell .field__error {
+.field__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-error);
+}
+
+.section--light .field__error {
   color: #b91c1c;
 }
 

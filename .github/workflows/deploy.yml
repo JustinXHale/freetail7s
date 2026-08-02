@@ -1,13 +1,10 @@
-# Deploy Hosting + Firestore rules on push to main.
-# Cloud Functions require the Blaze plan — omit until the project is upgraded.
-# Same FIREBASE_TOKEN pattern as MatchReadyTX.
+# Deploy on push to main (or manual workflow_dispatch).
+# Hosting + Firestore rules ship first so the site stays shippable even if
+# first-time Cloud Functions setup is still settling (Eventarc / IAM).
 #
 # Secrets (GitHub → Settings → Secrets and variables → Actions):
 #   FIREBASE_TOKEN          — from `firebase login:ci`
-#   VITE_FIREBASE_*         — web app config
-#
-# After upgrading to Blaze, change --only to:
-#   hosting,firestore:rules,functions
+#   VITE_FIREBASE_*         — web app config (required for non-demo builds)
 name: Deploy
 
 on:
@@ -34,8 +31,33 @@ jobs:
           node-version: '20'
           cache: npm
 
+      - name: Require Firebase web secrets
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          missing=
+          [ -z "$VITE_FIREBASE_API_KEY" ] && missing="$missing VITE_FIREBASE_API_KEY"
+          [ -z "$VITE_FIREBASE_PROJECT_ID" ] && missing="$missing VITE_FIREBASE_PROJECT_ID"
+          [ -z "$VITE_FIREBASE_APP_ID" ] && missing="$missing VITE_FIREBASE_APP_ID"
+          [ -z "$FIREBASE_TOKEN" ] && missing="$missing FIREBASE_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "Missing required Actions secrets:$missing"
+            exit 1
+          fi
+
       - name: Install app dependencies
         run: npm ci
+
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      - name: Build Cloud Functions
+        run: npm run build
+        working-directory: functions
 
       - name: Build web app
         run: npm run build
@@ -48,8 +70,12 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
 
-      - name: Deploy to Firebase
-        # Spark: hosting + rules only. Functions need Blaze.
+      - name: Deploy hosting and Firestore rules
         run: npx firebase-tools@13 deploy --only hosting,firestore:rules --project freetail7s --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Deploy Cloud Functions
+        run: npx firebase-tools@13 deploy --only functions --project freetail7s --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

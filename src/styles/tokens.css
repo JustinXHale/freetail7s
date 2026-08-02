@@ -16,13 +16,27 @@
   --color-brand-primary: #fff200;
   --color-brand-primary-hover: #fff566;
   --color-brand-primary-rgb: 255, 242, 0;
+  /* Navy — logo / light surfaces ONLY. Never use as text or icons on dark bg. */
   --color-brand-secondary: #0e284b;
   --color-brand-secondary-deep: #081a32;
   --color-brand-secondary-rgb: 14, 40, 75;
 
+  /*
+   * Interactive text colors (WCAG AA target 4.5:1+ for body/UI text)
+   * Dark UI: yellow links on near-black (not navy/blue — fails on black).
+   * Light UI: navy links on off-white (not yellow — fails on cream/white).
+   */
+  --color-link: var(--color-brand-primary);
+  --color-link-hover: var(--color-brand-primary-hover);
+  --color-link-on-light: var(--color-brand-secondary);
+  --color-link-on-light-hover: var(--color-brand-secondary-deep);
+
+  /* Accent for labels/eyebrows on dark (readable yellow, not navy) */
+  --color-accent-on-dark: var(--color-brand-primary);
+
   --color-live: #ef4444;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
   /* Lighter red for readable error text on dark backgrounds */
   --color-error: #f87171;
 

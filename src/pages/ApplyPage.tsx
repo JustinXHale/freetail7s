@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, ButtonLink } from '../components/ui/Button'
 import {
@@ -14,6 +14,16 @@ import {
   useSubmitRefereeApplication,
 } from '../hooks/useTournament'
 import { EVENT_DATES } from '../data/eventCopy'
+import {
+  ACCEPTANCE_PAYMENT_SUMMARY,
+  DIVISION_VIABILITY_SUMMARY,
+  FEE_ROWS,
+  KIT_DISCOUNT,
+  KIT_DISCOUNT_SUMMARY,
+  PRIZE_SUMMARY,
+  REFUND_SUMMARY,
+  RULES_PATH,
+} from '../data/tournamentRules'
 import type {
   DivisionCode,
   RefereePosition,
@@ -80,18 +90,13 @@ export function ApplyPage() {
           <div className="apply-panel__body">
             <h2>Team application</h2>
             <p>
-              Bring your club, school, or program to Freetail 7s. We review
-              applications on a rolling basis — divisions can fill before the
-              deadline, so don&apos;t wait.
+              Bring your club, school, or program to Freetail 7s. Applying is
+              free — entry fees are charged only after a team is accepted.
             </p>
             <ul>
               <li>
                 Application deadline:{' '}
                 <strong>{EVENT_DATES.applicationDeadline}</strong>
-              </li>
-              <li>
-                Entry fee ${event.entryFee} — payment due by{' '}
-                <strong>{EVENT_DATES.paymentDeadline}</strong>
               </li>
               <li>
                 Eight teams per division · invitation after review
@@ -101,10 +106,24 @@ export function ApplyPage() {
                   ))}
                 </ul>
               </li>
+              <li>
+                Rolling review — divisions can fill before the deadline
+              </li>
+              <li>
+                <Link to={RULES_PATH}>Tournament rules</Link> · eligibility and
+                format
+              </li>
             </ul>
             <ButtonLink to={teamHref} size="lg">
               Apply as a team
             </ButtonLink>
+            {import.meta.env.DEV ? (
+              <p className="apply-panel__preview">
+                <Link to="/apply/team?preview=1">Local form preview</Link>
+                {' '}
+                (dev only, skips sign-in)
+              </p>
+            ) : null}
           </div>
         </article>
 
@@ -132,7 +151,7 @@ export function ApplyPage() {
                 <strong>{EVENT_DATES.applicationDeadline}</strong>
               </li>
               <li>
-                Positions to apply for
+                Role(s) to apply for
                 <ul className="apply-panel__sublist">
                   {REFEREE_POSITIONS.map((p) => (
                     <li key={p}>{REFEREE_POSITION_LABELS[p]}</li>
@@ -147,9 +166,53 @@ export function ApplyPage() {
             <ButtonLink to={refereeHref} size="lg">
               Apply as a referee
             </ButtonLink>
+            {import.meta.env.DEV ? (
+              <p className="apply-panel__preview">
+                <Link to="/apply/referee?preview=1">Local form preview</Link>
+                {' '}
+                (dev only, skips sign-in)
+              </p>
+            ) : null}
           </div>
         </article>
       </div>
+
+      <section className="apply-info" aria-labelledby="team-apply-heading">
+        <h2 id="team-apply-heading">How team applications work</h2>
+        <ol className="apply-info__steps">
+          <li>
+            <strong>Sign in</strong> with Google or Apple (required to submit).
+          </li>
+          <li>
+            <strong>Register up to four teams in one form</strong> — one per
+            division. Shared contact details are reused; each team still becomes
+            its own application for review and multi-division pricing.
+          </li>
+          <li>
+            <strong>We review privately on a rolling basis.</strong> Acceptance
+            is by invitation. Applying does not guarantee a place; divisions can
+            fill before the deadline.
+          </li>
+          <li>
+            <strong>If invited,</strong> you&apos;ll get payment instructions by
+            email. Fees are due in full by{' '}
+            <strong>{EVENT_DATES.paymentDeadline}</strong>.{' '}
+            {ACCEPTANCE_PAYMENT_SUMMARY}
+          </li>
+          <li>
+            {DIVISION_VIABILITY_SUMMARY} Withdrawals, refunds, and prizes are
+            summarized below.
+          </li>
+        </ol>
+        <p>
+          The form collects your organization / team name, contact person,
+          mailing address, hometown, and per-team division, social links, and
+          Legacy Ecowear kit credit interest (${KIT_DISCOUNT} off that
+          team&apos;s fee).
+        </p>
+      </section>
+
+      <EntryFeeTable />
     </div>
   )
 }
@@ -204,18 +267,82 @@ export function RefereeApplyPage() {
   )
 }
 
+type TeamSlot = {
+  id: string
+  teamName: string
+  /** False until the applicant edits this card’s team name */
+  nameCustomized: boolean
+  divisionCode: DivisionCode | ''
+  instagram: string
+  facebook: string
+  legacyKitInterest: boolean
+  open: boolean
+}
+
+function emptyTeamSlot(open: boolean, teamName = ''): TeamSlot {
+  return {
+    id: crypto.randomUUID(),
+    teamName,
+    nameCustomized: false,
+    divisionCode: '',
+    instagram: '',
+    facebook: '',
+    legacyKitInterest: false,
+    open,
+  }
+}
+
 function TeamApplyForm() {
-  const event = useEvent()
   const divisions = useDivisions()
   const submit = useSubmitApplication()
   const { profile, user } = useAuth()
   const [done, setDone] = useState(false)
+  const [submittedCount, setSubmittedCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [teamCount, setTeamCount] = useState(1)
+  const [organizationName, setOrganizationName] = useState('')
+  const [defaultTeamName, setDefaultTeamName] = useState('')
+  const [teams, setTeams] = useState<TeamSlot[]>(() => [emptyTeamSlot(true)])
 
   const defaultContactName =
     [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || ''
   const defaultEmail = profile?.email ?? user?.email ?? ''
+
+  const maxTeams = Math.min(4, divisions.length)
+
+  function setCount(next: number) {
+    const n = Math.max(1, Math.min(maxTeams, next))
+    setTeamCount(n)
+    setTeams((prev) => {
+      if (n === prev.length) return prev
+      if (n < prev.length) return prev.slice(0, n)
+      const added = Array.from({ length: n - prev.length }, (_, i) =>
+        emptyTeamSlot(prev.length === 0 && i === 0, defaultTeamName),
+      )
+      return [...prev, ...added]
+    })
+  }
+
+  function onDefaultTeamNameChange(value: string) {
+    setDefaultTeamName(value)
+    setTeams((prev) =>
+      prev.map((t) =>
+        t.nameCustomized ? t : { ...t, teamName: value },
+      ),
+    )
+  }
+
+  function updateTeam(id: string, patch: Partial<TeamSlot>) {
+    setTeams((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    )
+  }
+
+  const divisionOptions = useMemo(
+    () => divisions.map((d) => ({ code: d.code, name: d.name })),
+    [divisions],
+  )
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -225,46 +352,88 @@ function TeamApplyForm() {
     const fd = new FormData(form)
     try {
       const honeypot = String(fd.get('company') ?? '')
-      await submit({
-        organizationName: String(fd.get('organizationName')),
-        teamName: String(fd.get('teamName')),
-        divisionCode: String(fd.get('divisionCode')) as DivisionCode,
+      const orgName = organizationName.trim()
+      if (!orgName) {
+        throw new Error('Organization name is required.')
+      }
+      if (teams.some((t) => !t.teamName.trim())) {
+        throw new Error('Each team needs a team name.')
+      }
+      const codes = teams.map((t) => t.divisionCode)
+      if (codes.some((c) => !c)) {
+        throw new Error('Choose a division for each team.')
+      }
+      if (new Set(codes).size !== codes.length) {
+        throw new Error('Each team must be in a different division.')
+      }
+
+      const mailingAddress = {
+        street: String(fd.get('street')),
+        city: String(fd.get('city')),
+        state: String(fd.get('state')),
+        postalCode: String(fd.get('postalCode')),
+        country: String(fd.get('country') || 'United States'),
+      }
+      const batchId =
+        teams.length > 1 ? `batch-${crypto.randomUUID()}` : undefined
+      const shared = {
+        organizationName: orgName,
         contactName: String(fd.get('contactName')),
         contactEmail: String(fd.get('contactEmail')),
         contactPhone: String(fd.get('contactPhone')),
-        location: String(fd.get('location')),
+        mailingAddress,
+        hometown: String(fd.get('hometown')),
         website: String(fd.get('website') || '') || undefined,
-        social: String(fd.get('social') || '') || undefined,
-        pairedTeamInterest: fd.get('pairedTeamInterest') === 'on',
-        pairedDivisionCode:
-          (String(fd.get('pairedDivisionCode') || '') as DivisionCode) ||
-          undefined,
-        legacyKitInterest: fd.get('legacyKitInterest') === 'on',
         notes: String(fd.get('notes') || '') || undefined,
+        batchId,
         honeypot,
-      })
+      }
+
+      await submit(
+        teams.map((t) => ({
+          ...shared,
+          teamName: t.teamName.trim(),
+          divisionCode: t.divisionCode as DivisionCode,
+          instagram: t.instagram.trim() || undefined,
+          facebook: t.facebook.trim() || undefined,
+          legacyKitInterest: t.legacyKitInterest,
+        })),
+      )
+      setSubmittedCount(teams.length)
       setDone(true)
       form.reset()
-    } catch {
-      setError('Could not submit application. Try again.')
+      setTeamCount(1)
+      setOrganizationName('')
+      setDefaultTeamName('')
+      setTeams([emptyTeamSlot(true)])
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not submit application. Try again.',
+      )
     } finally {
       setPending(false)
     }
   }
 
   return (
-    <div className="apply-form">
+    <div className="apply-form apply-form--wide">
       <h1>Team application</h1>
       <p>
-        Working entry fee ${event.entryFee}. Apply by{' '}
-        {EVENT_DATES.applicationDeadline} (rolling acceptance). Payment deadline{' '}
-        {EVENT_DATES.paymentDeadline}.
+        Applying is free. If invited, the entry fee is due by{' '}
+        {EVENT_DATES.paymentDeadline}. Deadline to apply:{' '}
+        {EVENT_DATES.applicationDeadline} (rolling review). Fee, refund, and
+        prize details are on the <Link to="/apply">Apply</Link> page; on-field
+        eligibility is in the <Link to={RULES_PATH}>Tournament rules</Link>.
       </p>
 
       {done ? (
         <p role="status" className="apply-form__success">
-          Application received. The organizer will review it privately and follow
-          up by email.
+          {submittedCount > 1
+            ? `${submittedCount} applications received (one per team). `
+            : 'Application received. '}
+          The organizer will review privately and follow up by email.
         </p>
       ) : null}
       {error ? (
@@ -278,76 +447,310 @@ function TeamApplyForm() {
           <label htmlFor="company">Company</label>
           <input id="company" name="company" tabIndex={-1} autoComplete="off" />
         </div>
-        <Field label="Organization" htmlFor="organizationName">
-          <TextInput id="organizationName" name="organizationName" required />
-        </Field>
-        <Field label="Team name" htmlFor="teamName">
-          <TextInput id="teamName" name="teamName" required maxLength={120} />
-        </Field>
-        <Field label="Division" htmlFor="divisionCode">
-          <TextSelect id="divisionCode" name="divisionCode" required>
-            {divisions.map((d) => (
-              <option key={d.id} value={d.code}>
-                {d.name}
+
+        <Field
+          label="How many teams are you registering?"
+          htmlFor="teamCount"
+          hint={`One team per division · max ${maxTeams}. Contact details below are shared; each team still gets its own application.`}
+        >
+          <TextSelect
+            id="teamCount"
+            value={String(teamCount)}
+            onChange={(e) => setCount(Number(e.target.value))}
+          >
+            {Array.from({ length: maxTeams }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n} {n === 1 ? 'team' : 'teams'}
               </option>
             ))}
           </TextSelect>
         </Field>
-        <Field label="Contact name" htmlFor="contactName">
-          <TextInput
-            id="contactName"
-            name="contactName"
-            required
-            defaultValue={defaultContactName}
-          />
-        </Field>
-        <Field label="Contact email" htmlFor="contactEmail">
-          <TextInput
-            id="contactEmail"
-            name="contactEmail"
-            type="email"
-            required
-            defaultValue={defaultEmail}
-          />
-        </Field>
-        <Field label="Contact phone" htmlFor="contactPhone">
-          <TextInput id="contactPhone" name="contactPhone" required />
-        </Field>
-        <Field label="Location" htmlFor="location">
-          <TextInput id="location" name="location" required />
-        </Field>
-        <Field label="Website" htmlFor="website" hint="Optional">
-          <TextInput id="website" name="website" type="url" />
-        </Field>
-        <Field label="Social profile" htmlFor="social" hint="Optional">
-          <TextInput id="social" name="social" />
-        </Field>
-        <label className="apply-check">
-          <input type="checkbox" name="pairedTeamInterest" />
-          Interested in paired boys/girls or men/women entry
-        </label>
-        <Field label="Paired division (if any)" htmlFor="pairedDivisionCode">
-          <TextSelect id="pairedDivisionCode" name="pairedDivisionCode">
-            <option value="">None</option>
-            {divisions.map((d) => (
-              <option key={d.id} value={d.code}>
-                {d.name}
-              </option>
-            ))}
-          </TextSelect>
-        </Field>
-        <label className="apply-check">
-          <input type="checkbox" name="legacyKitInterest" />
-          Interested in Legacy Ecowear kit incentive
-        </label>
-        <Field label="Notes" htmlFor="notes">
+
+        <fieldset className="apply-fieldset">
+          <legend>Shared contact details</legend>
+          <p className="apply-fieldset__hint">
+            Used for every team in this submission.
+          </p>
+
+          <div className="apply-form__row">
+            <Field label="Contact name" htmlFor="contactName">
+              <TextInput
+                id="contactName"
+                name="contactName"
+                required
+                defaultValue={defaultContactName}
+              />
+            </Field>
+            <Field label="Contact email" htmlFor="contactEmail">
+              <TextInput
+                id="contactEmail"
+                name="contactEmail"
+                type="email"
+                required
+                defaultValue={defaultEmail}
+              />
+            </Field>
+          </div>
+
+          <Field label="Contact phone" htmlFor="contactPhone">
+            <TextInput id="contactPhone" name="contactPhone" required />
+          </Field>
+
+          <div className="apply-form__row">
+            <Field
+              label="Organization"
+              htmlFor="organizationName"
+              hint="Club, school, or program"
+            >
+              <TextInput
+                id="organizationName"
+                name="organizationName"
+                required
+                maxLength={120}
+                value={organizationName}
+                onChange={(e) => setOrganizationName(e.target.value)}
+              />
+            </Field>
+            <Field
+              label="Team name"
+              htmlFor="defaultTeamName"
+              hint="Pre-fills each team below — change per card if a side uses a different name"
+            >
+              <TextInput
+                id="defaultTeamName"
+                name="defaultTeamName"
+                required
+                maxLength={120}
+                value={defaultTeamName}
+                onChange={(e) => onDefaultTeamNameChange(e.target.value)}
+              />
+            </Field>
+          </div>
+
+          <Field label="Street address" htmlFor="street">
+            <TextInput
+              id="street"
+              name="street"
+              required
+              autoComplete="street-address"
+            />
+          </Field>
+          <div className="apply-form__row">
+            <Field label="City" htmlFor="city">
+              <TextInput
+                id="city"
+                name="city"
+                required
+                autoComplete="address-level2"
+              />
+            </Field>
+            <Field label="State" htmlFor="state">
+              <TextInput
+                id="state"
+                name="state"
+                required
+                autoComplete="address-level1"
+              />
+            </Field>
+          </div>
+          <div className="apply-form__row">
+            <Field label="Postal code" htmlFor="postalCode">
+              <TextInput
+                id="postalCode"
+                name="postalCode"
+                required
+                autoComplete="postal-code"
+              />
+            </Field>
+            <Field label="Country" htmlFor="country">
+              <TextInput
+                id="country"
+                name="country"
+                required
+                defaultValue="United States"
+                autoComplete="country-name"
+              />
+            </Field>
+          </div>
+
+          <Field
+            label="Team hometown"
+            htmlFor="hometown"
+            hint="City or metro fans will recognize (may differ from mailing address)"
+          >
+            <TextInput id="hometown" name="hometown" required />
+          </Field>
+
+          <Field label="Website" htmlFor="website" hint="Optional">
+            <TextInput id="website" name="website" type="url" />
+          </Field>
+        </fieldset>
+
+        <h2 className="apply-form__section-title">
+          {teamCount > 1 ? 'Each team' : 'Team details'}
+        </h2>
+        <p className="apply-form__section-lead">
+          Team name, division, socials, and kit credit
+          {teamCount > 1 ? ' — one card per application' : ''}.
+        </p>
+
+        <div className="apply-team-cards">
+          {teams.map((team, index) => {
+            const usedElsewhere = new Set(
+              teams
+                .filter((t) => t.id !== team.id && t.divisionCode)
+                .map((t) => t.divisionCode),
+            )
+            const divisionLabel = team.divisionCode
+              ? divisionOptions.find((d) => d.code === team.divisionCode)?.name
+              : null
+            const title =
+              team.teamName.trim() ||
+              divisionLabel ||
+              `Team ${index + 1}`
+
+            return (
+              <details
+                key={team.id}
+                className="apply-team-card"
+                open={team.open}
+                onToggle={(e) =>
+                  updateTeam(team.id, {
+                    open: (e.target as HTMLDetailsElement).open,
+                  })
+                }
+              >
+                <summary className="apply-team-card__summary">
+                  <span className="apply-team-card__eyebrow">
+                    Application {index + 1} of {teams.length}
+                    {divisionLabel ? ` · ${divisionLabel}` : ''}
+                  </span>
+                  <span className="apply-team-card__title">{title}</span>
+                </summary>
+                <div className="apply-team-card__body">
+                  <Field
+                    label="Team name"
+                    htmlFor={`teamName-${team.id}`}
+                    hint={
+                      teamCount > 1
+                        ? 'Change if this side uses a different name than the organization default'
+                        : undefined
+                    }
+                  >
+                    <TextInput
+                      id={`teamName-${team.id}`}
+                      required
+                      maxLength={120}
+                      value={team.teamName}
+                      onChange={(e) =>
+                        updateTeam(team.id, {
+                          teamName: e.target.value,
+                          nameCustomized: true,
+                        })
+                      }
+                    />
+                  </Field>
+                  <Field
+                    label="Division"
+                    htmlFor={`division-${team.id}`}
+                  >
+                    <TextSelect
+                      id={`division-${team.id}`}
+                      required
+                      value={team.divisionCode}
+                      onChange={(e) =>
+                        updateTeam(team.id, {
+                          divisionCode: e.target.value as DivisionCode | '',
+                        })
+                      }
+                    >
+                      <option value="">Select division</option>
+                      {divisionOptions.map((d) => (
+                        <option
+                          key={d.code}
+                          value={d.code}
+                          disabled={usedElsewhere.has(d.code)}
+                        >
+                          {d.name}
+                          {usedElsewhere.has(d.code) ? ' (already selected)' : ''}
+                        </option>
+                      ))}
+                    </TextSelect>
+                  </Field>
+                  <div className="apply-form__row">
+                    <Field
+                      label="Instagram"
+                      htmlFor={`ig-${team.id}`}
+                      hint="Optional · handle or URL"
+                    >
+                      <TextInput
+                        id={`ig-${team.id}`}
+                        value={team.instagram}
+                        onChange={(e) =>
+                          updateTeam(team.id, { instagram: e.target.value })
+                        }
+                        placeholder="@yourclub"
+                      />
+                    </Field>
+                    <Field
+                      label="Facebook"
+                      htmlFor={`fb-${team.id}`}
+                      hint="Optional · page or URL"
+                    >
+                      <TextInput
+                        id={`fb-${team.id}`}
+                        value={team.facebook}
+                        onChange={(e) =>
+                          updateTeam(team.id, { facebook: e.target.value })
+                        }
+                      />
+                    </Field>
+                  </div>
+                  <label className="apply-check apply-check--kit">
+                    <input
+                      type="checkbox"
+                      checked={team.legacyKitInterest}
+                      onChange={(e) =>
+                        updateTeam(team.id, {
+                          legacyKitInterest: e.target.checked,
+                        })
+                      }
+                    />
+                    <span>
+                      <strong>
+                        Legacy Ecowear kit credit — ${KIT_DISCOUNT} off this
+                        team:
+                      </strong>{' '}
+                      interested in the Freetail custom kit package (stacks with
+                      multi-division pricing)
+                    </span>
+                  </label>
+                </div>
+              </details>
+            )
+          })}
+        </div>
+
+        <Field label="Notes" htmlFor="notes" hint="Optional · applies to this submission">
           <TextTextarea id="notes" name="notes" />
         </Field>
         <p className="apply-form__fine">
-          By submitting you acknowledge the event terms and privacy policy.
+          {DIVISION_VIABILITY_SUMMARY} {ACCEPTANCE_PAYMENT_SUMMARY}
+        </p>
+        <p className="apply-form__fine">
+          By submitting you acknowledge the{' '}
+          <Link to={RULES_PATH}>tournament rules</Link>,{' '}
+          <Link to="/terms">terms</Link>, and{' '}
+          <Link to="/privacy">privacy</Link> policy, including the fee and
+          refund terms on the <Link to="/apply">Apply</Link> page. Each team
+          above is stored as a separate application.
         </p>
         <Button type="submit" disabled={pending}>
-          {pending ? 'Submitting…' : 'Submit team application'}
+          {pending
+            ? 'Submitting…'
+            : teamCount > 1
+              ? `Submit ${teamCount} applications`
+              : 'Submit team application'}
         </Button>
       </form>
     </div>
@@ -382,7 +785,7 @@ function RefereeApplyForm() {
         .filter((code) => fd.get(`division_${code}`) === 'on') as DivisionCode[]
 
       if (positions.length === 0) {
-        throw new Error('Select at least one position.')
+        throw new Error('Select at least one role.')
       }
       if (divisionCodes.length === 0) {
         throw new Error('Select at least one division.')
@@ -397,6 +800,7 @@ function RefereeApplyForm() {
         fd.get('highestSevensCompetition'),
       ) as SevensCompetitionLevel
       const otherDetail = String(fd.get('highestSevensCompetitionOther') || '')
+      const footageRaw = String(fd.get('matchFootageUrl') || '').trim()
 
       await submit({
         firstName: String(fd.get('firstName')).trim(),
@@ -417,6 +821,8 @@ function RefereeApplyForm() {
         refereeSociety: String(fd.get('refereeSociety')).trim(),
         recommendationContact:
           String(fd.get('recommendationContact') || '').trim() || undefined,
+        instagram: String(fd.get('instagram') || '').trim() || undefined,
+        facebook: String(fd.get('facebook') || '').trim() || undefined,
         highestSevensCompetition,
         highestSevensCompetitionOther: otherDetail.trim() || undefined,
         highestSevensScope: String(
@@ -424,7 +830,7 @@ function RefereeApplyForm() {
         ) as SevensOfficiatingScope,
         highestSevensNotes:
           String(fd.get('highestSevensNotes') || '').trim() || undefined,
-        notes: String(fd.get('notes') || '').trim() || undefined,
+        matchFootageUrl: footageRaw || undefined,
         honeypot,
       })
       setDone(true)
@@ -495,18 +901,41 @@ function RefereeApplyForm() {
           </Field>
         </div>
 
-        <Field label="Email address" htmlFor="email">
-          <TextInput
-            id="email"
-            name="email"
-            type="email"
-            required
-            defaultValue={defaultEmail}
-          />
-        </Field>
-        <Field label="Phone number" htmlFor="phone">
-          <TextInput id="phone" name="phone" type="tel" required />
-        </Field>
+        <div className="apply-form__row">
+          <Field label="Email address" htmlFor="email">
+            <TextInput
+              id="email"
+              name="email"
+              type="email"
+              required
+              defaultValue={defaultEmail}
+            />
+          </Field>
+          <Field label="Phone number" htmlFor="phone">
+            <TextInput id="phone" name="phone" type="tel" required />
+          </Field>
+        </div>
+
+        <div className="apply-form__row">
+          <Field
+            label="Instagram"
+            htmlFor="instagram"
+            hint="Optional · handle or URL"
+          >
+            <TextInput
+              id="instagram"
+              name="instagram"
+              placeholder="@yourhandle"
+            />
+          </Field>
+          <Field
+            label="Facebook"
+            htmlFor="facebook"
+            hint="Optional · page or URL"
+          >
+            <TextInput id="facebook" name="facebook" />
+          </Field>
+        </div>
 
         <fieldset className="apply-fieldset">
           <legend>Mailing address</legend>
@@ -557,62 +986,70 @@ function RefereeApplyForm() {
           </div>
         </fieldset>
 
-        <Field
-          label="Years of officiating experience"
-          htmlFor="yearsOfficiating"
-        >
-          <TextInput
-            id="yearsOfficiating"
-            name="yearsOfficiating"
-            type="number"
-            min={0}
-            max={80}
-            step={1}
-            required
-          />
-        </Field>
-        <Field
-          label="Referee grade"
-          htmlFor="refereeGrade"
-          hint="If known — optional"
-        >
-          <TextInput id="refereeGrade" name="refereeGrade" />
-        </Field>
+        <div className="apply-form__row">
+          <Field
+            label="Years of officiating experience"
+            htmlFor="yearsOfficiating"
+          >
+            <TextInput
+              id="yearsOfficiating"
+              name="yearsOfficiating"
+              type="number"
+              min={0}
+              max={80}
+              step={1}
+              required
+            />
+          </Field>
+          <Field
+            label="Referee grade"
+            htmlFor="refereeGrade"
+            hint="If known — optional"
+          >
+            <TextInput id="refereeGrade" name="refereeGrade" />
+          </Field>
+        </div>
 
-        <fieldset className="apply-fieldset">
-          <legend>Divisions interested in</legend>
-          <div className="apply-checks">
-            {divisions.map((d) => (
-              <label key={d.id} className="apply-check">
-                <input type="checkbox" name={`division_${d.code}`} />
-                {d.name}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <div className="apply-form__row apply-form__row--align-start">
+          <fieldset className="apply-fieldset">
+            <legend>Divisions interested in</legend>
+            <div className="apply-checks">
+              {divisions.map((d) => (
+                <label key={d.id} className="apply-check">
+                  <input type="checkbox" name={`division_${d.code}`} />
+                  {d.name}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset className="apply-fieldset">
+            <legend>Role(s)</legend>
+            <div className="apply-checks">
+              {REFEREE_POSITIONS.map((p) => (
+                <label key={p} className="apply-check">
+                  <input type="checkbox" name={`position_${p}`} />
+                  {REFEREE_POSITION_LABELS[p]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
 
-        <fieldset className="apply-fieldset">
-          <legend>Positions interested in</legend>
-          <div className="apply-checks">
-            {REFEREE_POSITIONS.map((p) => (
-              <label key={p} className="apply-check">
-                <input type="checkbox" name={`position_${p}`} />
-                {REFEREE_POSITION_LABELS[p]}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <Field label="Referee society" htmlFor="refereeSociety">
-          <TextInput id="refereeSociety" name="refereeSociety" required />
-        </Field>
-        <Field
-          label="Recommendation contact"
-          htmlFor="recommendationContact"
-          hint="Optional — name and phone or email"
-        >
-          <TextInput id="recommendationContact" name="recommendationContact" />
-        </Field>
+        <div className="apply-form__row">
+          <Field label="Referee society" htmlFor="refereeSociety">
+            <TextInput id="refereeSociety" name="refereeSociety" required />
+          </Field>
+          <Field
+            label="Recommendation contact"
+            htmlFor="recommendationContact"
+            hint="Optional — name and phone or email"
+          >
+            <TextInput
+              id="recommendationContact"
+              name="recommendationContact"
+            />
+          </Field>
+        </div>
 
         <fieldset className="apply-fieldset">
           <legend>Highest level of sevens officiated</legend>
@@ -682,16 +1119,103 @@ function RefereeApplyForm() {
           </Field>
         </fieldset>
 
-        <Field label="Additional notes" htmlFor="notes" hint="Optional">
-          <TextTextarea id="notes" name="notes" />
+        <Field
+          label="Match footage link"
+          htmlFor="matchFootageUrl"
+          hint="Optional — preferably sevens (YouTube, Hudl, Google Drive, etc.)"
+        >
+          <TextInput
+            id="matchFootageUrl"
+            name="matchFootageUrl"
+            type="url"
+            placeholder="https://"
+          />
         </Field>
         <p className="apply-form__fine">
-          By submitting you acknowledge the event terms and privacy policy.
+          By submitting you acknowledge the event{' '}
+          <Link to="/terms">terms</Link> and{' '}
+          <Link to="/privacy">privacy</Link> policy.
         </p>
         <Button type="submit" disabled={pending}>
           {pending ? 'Submitting…' : 'Submit referee application'}
         </Button>
       </form>
     </div>
+  )
+}
+
+function EntryFeeTable() {
+  return (
+    <section className="apply-fees" aria-labelledby="entry-fees-heading">
+      <h2 id="entry-fees-heading">Fees, refunds, and prizes</h2>
+      <p>
+        Fees apply after invitation — there is no charge to apply. The base rate
+        is <strong>${FEE_ROWS[0].fee}</strong> per team for one division.
+        Payment is due in full by{' '}
+        <strong>{EVENT_DATES.paymentDeadline}</strong>.{' '}
+        {ACCEPTANCE_PAYMENT_SUMMARY}
+      </p>
+      <p>
+        If more than one team from the same organization is accepted, each team
+        pays the multi-division rate below. Rates lock when teams are accepted —
+        they do not change later if another side withdraws.
+      </p>
+      <table className="apply-fees__table tabular">
+        <thead>
+          <tr>
+            <th scope="col">Accepted teams from the same organization</th>
+            <th scope="col">Fee per team</th>
+          </tr>
+        </thead>
+        <tbody>
+          {FEE_ROWS.map((row) => (
+            <tr key={row.label}>
+              <td>{row.label}</td>
+              <td>${row.fee}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <aside className="apply-fees__kit" aria-labelledby="kit-credit-heading">
+        <div className="apply-fees__kit-copy">
+          <p className="apply-fees__kit-eyebrow">Title sponsor offer</p>
+          <h3 id="kit-credit-heading">
+            Legacy Ecowear kit credit — ${KIT_DISCOUNT} off
+          </h3>
+          <p>{KIT_DISCOUNT_SUMMARY}</p>
+          <p>
+            Mark kit interest on the{' '}
+            <Link to="/apply/team">team application</Link> so we can follow up
+            with ordering details.
+          </p>
+        </div>
+        <div
+          className="apply-fees__flyer"
+          role="img"
+          aria-label="Legacy Ecowear kit flyer placeholder — artwork coming soon"
+        >
+          <span className="apply-fees__flyer-label">Kit flyer</span>
+          <span className="apply-fees__flyer-hint">Placeholder · artwork coming soon</span>
+        </div>
+      </aside>
+      <ul className="apply-fees__notes">
+        <li>
+          Multi-division pricing applies when multiple teams from the same
+          organization are accepted (register them together on one form — one
+          team per division).
+        </li>
+        <li>
+          <strong>Withdrawals and refunds:</strong> {REFUND_SUMMARY}
+        </li>
+        <li>
+          <strong>Prizes:</strong> {PRIZE_SUMMARY}
+        </li>
+        <li>{DIVISION_VIABILITY_SUMMARY}</li>
+        <li>
+          On-field competition rules and Elite U18 eligibility:{' '}
+          <Link to={RULES_PATH}>Tournament rules</Link>.
+        </li>
+      </ul>
+    </section>
   )
 }

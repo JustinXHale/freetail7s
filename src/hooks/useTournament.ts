@@ -130,31 +130,36 @@ export function useRefereeApplications() {
   }
 }
 
+type ApplicationInput = Omit<
+  ApplicationDoc,
+  'id' | 'createdAt' | 'updatedAt' | 'status' | 'eventId' | 'submittedByUid'
+> & { honeypot?: string }
+
 export function useSubmitApplication() {
   const { setState } = useDemo()
   const { user } = useAuth()
-  return async (
-    input: Omit<ApplicationDoc, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'eventId' | 'submittedByUid'> & {
-      honeypot?: string
-    },
-  ) => {
-    if (input.honeypot) return { ok: true as const }
+  return async (input: ApplicationInput | ApplicationInput[]) => {
+    const list = Array.isArray(input) ? input : [input]
+    if (list.some((item) => item.honeypot)) return { ok: true as const, ids: [] as string[] }
     if (!user?.uid) throw new Error('Sign in required to apply.')
     const now = new Date().toISOString()
-    const doc: ApplicationDoc = {
-      ...input,
-      id: `app-${crypto.randomUUID()}`,
-      eventId: EVENT_ID,
-      status: 'submitted',
-      submittedByUid: user.uid,
-      createdAt: now,
-      updatedAt: now,
-    }
+    const docs: ApplicationDoc[] = list.map((item) => {
+      const { honeypot: _hp, ...rest } = item
+      return {
+        ...rest,
+        id: `app-${crypto.randomUUID()}`,
+        eventId: EVENT_ID,
+        status: 'submitted',
+        submittedByUid: user.uid,
+        createdAt: now,
+        updatedAt: now,
+      }
+    })
     setState((prev) => ({
       ...prev,
-      applications: [doc, ...prev.applications],
+      applications: [...docs, ...prev.applications],
     }))
-    return { ok: true as const, id: doc.id }
+    return { ok: true as const, ids: docs.map((d) => d.id) }
   }
 }
 

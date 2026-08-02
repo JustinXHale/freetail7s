@@ -100,6 +100,14 @@ export interface OrganizationDoc {
   social?: string
 }
 
+export interface MailingAddress {
+  street: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+}
+
 export interface TeamDoc {
   id: string
   eventId: string
@@ -108,13 +116,24 @@ export interface TeamDoc {
   divisionCode: DivisionCode
   name: string
   slug: string
+  /** Display hometown (city / metro) */
   location: string
+  hometown?: string
+  mailingAddress?: MailingAddress
+  website?: string
+  instagram?: string
+  facebook?: string
   description?: string
   logoUrl?: string
   poolId?: string
   published: boolean
   paymentStatus: PaymentStatus
   managerUserIds: string[]
+  /**
+   * Roster (coaches / players) stays locked until acceptance workflow opens
+   * manager forms. Shell only for now.
+   */
+  rosterAccess: 'shell' | 'open'
   createdAt: string
   updatedAt: string
 }
@@ -122,19 +141,22 @@ export interface TeamDoc {
 export interface ApplicationDoc {
   id: string
   eventId: string
+  /** Same value as teamName for current applications */
   organizationName: string
   teamName: string
   divisionCode: DivisionCode
   contactName: string
   contactEmail: string
   contactPhone: string
-  location: string
+  mailingAddress: MailingAddress
+  hometown: string
   website?: string
-  social?: string
-  pairedTeamInterest: boolean
-  pairedDivisionCode?: DivisionCode
+  instagram?: string
+  facebook?: string
   legacyKitInterest: boolean
   notes?: string
+  /** Links multi-team submissions from one form session */
+  batchId?: string
   status: ApplicationStatus
   /** Firebase uid of the signed-in applicant */
   submittedByUid?: string
@@ -227,26 +249,23 @@ export interface RefereeApplicationDoc {
   lastName: string
   email: string
   phone: string
-  mailingAddress: {
-    street: string
-    city: string
-    state: string
-    postalCode: string
-    country: string
-  }
+  mailingAddress: MailingAddress
   yearsOfficiating: number
   refereeGrade?: string
   divisionCodes: DivisionCode[]
   positions: RefereePosition[]
   refereeSociety: string
   recommendationContact?: string
+  instagram?: string
+  facebook?: string
   /** Highest sevens competition worked (e.g. qualifiers vs HSBC) */
   highestSevensCompetition: SevensCompetitionLevel
   highestSevensCompetitionOther?: string
   /** Local vs regional vs national vs international for that competition */
   highestSevensScope: SevensOfficiatingScope
   highestSevensNotes?: string
-  notes?: string
+  /** Optional link to match footage (preferably sevens) */
+  matchFootageUrl?: string
   status: ApplicationStatus
   submittedByUid?: string
   honeypot?: string

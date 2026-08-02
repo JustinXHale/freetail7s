@@ -6,7 +6,7 @@ export const EVENT_DATES = {
   sunday: 'Sunday, January 3, 2027',
   rangeShort: 'January 1–3, 2027',
   applicationDeadline: 'October 1, 2026',
-  paymentDeadline: 'December 1, 2026',
+  paymentDeadline: 'November 20, 2026',
 } as const
 
 export const PLACEHOLDER_POOLS = [

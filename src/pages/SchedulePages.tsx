@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { MatchCard } from '../components/ui/MatchCard'
 import {
+  useDivisions,
   useEvent,
   useMatches,
   usePools,
@@ -9,8 +11,10 @@ import {
   useTeams,
 } from '../hooks/useTournament'
 import type { MatchDoc } from '../types/models'
+import { PLACEHOLDER_POOLS } from '../data/eventCopy'
 import { PAGE_PHOTOS } from '../data/photos'
 import { PagePhotoBand } from '../components/media/PhotoLightbox'
+import { RULES_PATH, TIEBREAK_SUMMARY } from '../data/tournamentRules'
 
 function MatchRow({ match }: { match: MatchDoc }) {
   const home = useTeamName(match.homeTeamId)
@@ -80,6 +84,10 @@ export function PoolsStandingsPage() {
     <div className="container section">
       <PagePhotoBand photo={PAGE_PHOTOS.pools} />
       <h1>Pools & Standings</h1>
+      <p>
+        {TIEBREAK_SUMMARY}{' '}
+        <Link to={RULES_PATH}>Full tournament rules</Link>.
+      </p>
       {pools.length === 0 ? <p>Pools not published yet.</p> : null}
       {pools.map((pool) => (
         <PoolBlock
@@ -166,13 +174,69 @@ export function ResultsPage() {
 }
 
 export function BracketPage() {
+  const divisions = useDivisions()
+  const pools = usePools()
+
   return (
     <div className="container section">
       <PagePhotoBand photo={PAGE_PHOTOS.brackets} />
-      <h1>Brackets</h1>
+      <h1>Teams & brackets</h1>
       <p>
-        Championship and placement brackets publish after pool stages lock.
+        Pool structure and championship brackets for each division. Accepted
+        teams will be published here once invitations are confirmed.
+        Tiebreakers and knockout procedures are in{' '}
+        <Link to={RULES_PATH}>Tournament rules</Link>.
       </p>
+
+      {pools.length > 0 ? (
+        <p>
+          Live pool standings:{' '}
+          <Link to="/pools">Pools &amp; Standings</Link>.
+        </p>
+      ) : null}
+
+      <section id="pools-brackets" className="jump-target">
+        <h2>Pools & brackets</h2>
+        <p>
+          Until brackets are locked, placeholders show the two-pool structure
+          for each division.
+        </p>
+        {divisions.map((d) => (
+          <div key={d.id} style={{ marginTop: '2rem' }}>
+            <h3 style={{ fontSize: '1.25rem' }}>{d.name}</h3>
+            <div
+              style={{
+                display: 'grid',
+                gap: '1.25rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                marginTop: '1rem',
+              }}
+            >
+              {PLACEHOLDER_POOLS.map((pool) => (
+                <div
+                  key={`${d.id}-${pool.name}`}
+                  style={{
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-bg-elevated)',
+                    padding: '1.25rem',
+                  }}
+                >
+                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>
+                    {pool.name}
+                  </h4>
+                  <ol style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                    {pool.teams.map((name) => (
+                      <li key={name} style={{ marginBottom: '0.35rem' }}>
+                        {name}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
     </div>
   )
 }

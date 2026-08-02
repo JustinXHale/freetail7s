@@ -1,7 +1,9 @@
+import { Link } from 'react-router-dom'
 import { ButtonLink } from '../ui/Button'
 import { useDivisions, useEvent, useAnnouncements } from '../../hooks/useTournament'
 import { HERO_PHOTO, RANCH_PHOTOS } from '../../data/photos'
 import { ClickablePhoto } from '../media/PhotoLightbox'
+import { RULES_PATH } from '../../data/tournamentRules'
 import logo from '../../assets/logos/ft7s-full.png'
 import './HomeSections.css'
 
@@ -83,7 +85,9 @@ export function DivisionPanel() {
         <h2>Premier and Elite. One field.</h2>
         <p>
           Men, women, and U18 sides compete under the same Freetail standard —
-          invitation-quality rugby to open the year in Austin.
+          invitation-quality rugby to open the year in Austin. Format,
+          eligibility, and prizes are in the{' '}
+          <Link to={RULES_PATH}>Tournament rules</Link>.
         </p>
         <div className="division-grid">
           {divisions.map((d) => (

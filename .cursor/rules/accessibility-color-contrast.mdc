@@ -1,0 +1,27 @@
+---
+description: WCAG contrast rules for Freetail 7s dark UI — never navy/blue text on black, never yellow text on light
+globs: "**/*.{css,tsx,jsx}"
+alwaysApply: false
+---
+
+# Color & contrast (Freetail 7s)
+
+Read `docs/ACCESSIBILITY-COLOR.md` before changing colors.
+
+## Hard rules
+
+1. **Default UI is dark** (`--color-bg` ≈ `#0a0a0a`). Admin is dark too.
+2. **Never** use `--color-brand-secondary` / navy `#0e284b` / blue for text, icons, or links on dark backgrounds — contrast fails and it reads as invisible blue-on-black.
+3. **Never** use `--color-brand-primary` (yellow `#fff200`) as body or link text on `.section--light` / cream/white — use `--color-link-on-light` (navy).
+4. Prefer semantic tokens:
+   - Dark links: `--color-link` / `--color-link-hover`
+   - Light links: `--color-link-on-light` / `--color-link-on-light-hover`
+   - Dark accents/eyebrows: `--color-accent-on-dark`
+5. Do **not** style `.admin-shell` buttons/fields as light-surface (no `--color-text-on-light` on admin).
+6. Keep focus visible with `--color-focus` (yellow) and a clear outline offset.
+
+## When adding UI
+
+- If a control sits on dark elevated panels, use light text / yellow accents.
+- If a block uses `section--light`, switch link and text tokens to the on-light set.
+- Avoid hardcoded hex blues; extend `tokens.css` instead.

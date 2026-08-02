@@ -2,26 +2,27 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: 240px 1fr;
-  background: var(--color-bg-light);
-  color: var(--color-text-on-light);
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 .admin-shell p {
-  color: var(--color-text-on-light-secondary);
+  color: var(--color-text-secondary);
 }
 
 .admin-shell h1,
 .admin-shell h2,
 .admin-shell h3 {
-  color: var(--color-text-on-light);
+  color: var(--color-text);
   text-transform: none;
   letter-spacing: 0;
   font-family: var(--font-body);
 }
 
 .admin-nav {
-  background: #111;
+  background: #050505;
   color: var(--color-text);
+  border-right: 1px solid var(--color-border);
   padding: 1.25rem 1rem;
   display: flex;
   flex-direction: column;
@@ -55,7 +56,7 @@
 .admin-nav a:hover,
 .admin-nav a.active {
   color: var(--color-brand-primary);
-  background: rgba(var(--color-brand-primary-rgb), 0.1);
+  background: rgba(var(--color-brand-primary-rgb), 0.12);
 }
 
 .admin-nav__foot {
@@ -67,29 +68,47 @@
 .admin-main {
   padding: 1.5rem;
   overflow: auto;
+  background: var(--color-bg);
 }
 
 .admin-main a:not(.btn) {
-  color: var(--color-brand-secondary);
+  color: var(--color-link);
 }
 
 .admin-main a:not(.btn):hover,
 .admin-main a:not(.btn):focus-visible {
-  color: var(--color-brand-secondary-deep);
+  color: var(--color-link-hover);
+  text-decoration: underline;
+}
+
+.admin-main select,
+.admin-main input:not([type='checkbox']):not([type='radio']),
+.admin-main textarea {
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
 }
 
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: var(--color-bg-elevated);
   font-size: 0.9rem;
 }
 
 .admin-table th,
 .admin-table td {
-  border-bottom: 1px solid var(--color-border-on-light);
+  border-bottom: 1px solid var(--color-border);
   padding: 0.65rem 0.75rem;
   text-align: left;
+  color: var(--color-text);
+}
+
+.admin-table th {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .admin-card-grid {
@@ -100,8 +119,8 @@
 }
 
 .admin-card {
-  background: white;
-  border: 1px solid var(--color-border-on-light);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
   padding: 1rem;
 }
 
@@ -109,7 +128,12 @@
   display: block;
   font-size: 1.75rem;
   font-family: var(--font-display);
-  color: var(--color-text-on-light);
+  color: var(--color-text);
+}
+
+.admin-card span {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
 }
 
 @media (max-width: 800px) {
