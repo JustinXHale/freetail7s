@@ -1,8 +1,11 @@
 import { initializeApp } from 'firebase-admin/app'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
-import { logger } from 'firebase-functions'
+import { logger } from 'firebase-functions/logger'
+import { setGlobalOptions } from 'firebase-functions/v2'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
+
+setGlobalOptions({ region: 'us-central1' })
 
 initializeApp()
 const db = getFirestore()

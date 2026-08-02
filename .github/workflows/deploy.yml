@@ -1,6 +1,7 @@
 # Deploy on push to main (or manual workflow_dispatch).
-# Hosting + Firestore rules ship first so the site stays shippable even if
-# first-time Cloud Functions setup is still settling (Eventarc / IAM).
+# Hosting + Firestore rules are required. Cloud Functions are attempted next
+# but do not fail the workflow — Gen2 cold-start / Eventarc issues must not
+# block shipping the public site.
 #
 # Secrets (GitHub → Settings → Secrets and variables → Actions):
 #   FIREBASE_TOKEN          — from `firebase login:ci`
@@ -76,6 +77,15 @@ jobs:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       - name: Deploy Cloud Functions
+        id: functions
+        continue-on-error: true
         run: npx firebase-tools@13 deploy --only functions --project freetail7s --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Functions deploy status
+        if: steps.functions.outcome != 'success'
+        run: |
+          echo "::warning::Cloud Functions deploy failed (site hosting still shipped)."
+          echo "Check Cloud Run revision logs for PORT=8080 / healthcheck failures."
+          echo "Hosting + Firestore rules from this run are live."

@@ -29,9 +29,11 @@ Then set repository secret `FIREBASE_TOKEN` to the printed token.
 | Workflow | When | What |
 |----------|------|------|
 | `.github/workflows/ci.yml` | PR + push to `main` | `npm ci`, functions build, web build |
-| `.github/workflows/deploy.yml` | push to `main` + manual | build with `VITE_*` secrets, deploy hosting + Firestore rules, then Cloud Functions |
+| `.github/workflows/deploy.yml` | push to `main` + manual | build with `VITE_*` secrets, deploy hosting + Firestore rules (required), then Cloud Functions (best-effort) |
 
-Hosting/rules deploy first so a flaky first-time Functions setup does not block the public site. Re-run **Deploy** (Actions → workflow_dispatch) or push again after Eventarc/IAM settle if Functions fails.
+Hosting/rules deploy first and **must** succeed. Cloud Functions deploy is attempted afterward with `continue-on-error` so Gen2 Cloud Run health-check / Eventarc failures do not mark the whole Deploy red or block the public site.
+
+If Functions fail with `Container Healthcheck failed` / `PORT=8080`, open Cloud Run logs for one service (e.g. `setuserrole`) in `us-central1`. Common causes: cold-start crash, Eventarc/IAM still settling, or runtime issues. Re-run **Deploy** (Actions → workflow_dispatch) after fixing, or deploy functions locally: `firebase deploy --only functions`.
 
 ## Firebase project
 
