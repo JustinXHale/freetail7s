@@ -24,10 +24,10 @@ export const TIEBREAK_SUMMARY =
   'Pool table ties: head-to-head, then point differential, then lowest points against, then most points scored, then coin toss. Pool matches may end in a draw (3 / 1 / 0 points). Knockout matches use sudden death and a conversion shootout — see Tournament rules.'
 
 export const FEE_ROWS = [
-  { label: '1 division', fee: 700 },
-  { label: '2 divisions (same org / approved affiliate)', fee: 650 },
-  { label: '3 divisions', fee: 625 },
-  { label: '4 divisions', fee: 600 },
+  { label: '1 division', fee: 650 },
+  { label: '2 divisions (same org / approved affiliate)', fee: 600 },
+  { label: '3 divisions', fee: 575 },
+  { label: '4 divisions', fee: 550 },
 ] as const
 
 export const KIT_DISCOUNT = 50

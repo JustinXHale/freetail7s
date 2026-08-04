@@ -24,7 +24,7 @@ export function buildInitialDemoState(): DemoState {
     venueCity: 'Austin',
     venueState: 'Texas',
     titleSponsor: 'Legacy Ecowear',
-    entryFee: 700,
+    entryFee: 650,
     paymentDeadline: '2026-11-20',
     applicationOpen: true,
     mvpVotingOpen: false,

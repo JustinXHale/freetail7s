@@ -13,6 +13,7 @@ import { PAGE_PHOTOS, RANCH_PHOTOS } from '../data/photos'
 import {
   ACCEPTANCE_PAYMENT_SUMMARY,
   DIVISION_VIABILITY_SUMMARY,
+  FEE_ROWS,
   PRIZE_SUMMARY,
   REFUND_SUMMARY,
   RULES_PATH,
@@ -371,7 +372,7 @@ export function TermsPage() {
       </p>
       <p>
         Tournament dates: {EVENT_DATES.friday} through {EVENT_DATES.sunday}.
-        Base entry fee is $700 per team, due in full by{' '}
+        Base entry fee is ${FEE_ROWS[0].fee} per team, due in full by{' '}
         {EVENT_DATES.paymentDeadline}. Multi-division discounts, kit credit,
         withdrawals, refunds, and prizes are on the{' '}
         <Link to="/apply">Apply</Link> page. {ACCEPTANCE_PAYMENT_SUMMARY}{' '}

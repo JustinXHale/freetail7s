@@ -49,7 +49,7 @@ export const DEFAULT_FAQS = [
     id: 'entry-fee',
     question: 'What is the entry fee?',
     answer:
-      'Base entry fee is $700 per team, due in full by November 20, 2026. Same-umbrella or approved affiliate teams: $650 each for two divisions, $625 for three, $600 for four (locked once accepted). Legacy Ecowear Freetail custom kit package: additional $50 off that team only.',
+      'Base entry fee is $650 per team, due in full by November 20, 2026. Same-umbrella or approved affiliate teams: $600 each for two divisions, $575 for three, $550 for four (locked once accepted). Legacy Ecowear Freetail custom kit package: additional $50 off that team only.',
     order: 2,
   },
   {

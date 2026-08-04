@@ -97,8 +97,8 @@ Every team finishes with a final placement from first through eighth.
 
 ### Registration
 
-- Entry fee: **$700** per team, due in full by November 20, 2026.
-- Multi-division / approved affiliate discount (locked once accepted): 2 divisions **$650** each; 3 **$625**; 4 **$600**.
+- Entry fee: **$650** per team, due in full by November 20, 2026.
+- Multi-division / approved affiliate discount (locked once accepted): 2 divisions **$600** each; 3 **$575**; 4 **$550**.
 - Legacy Ecowear Freetail custom kit package: additional **$50** off that team only (stacks with multi-division rate).
 - Withdrawals: up to 75% refund through Nov 20, then −25 percentage points each week; full refund if a suitable replacement is found.
 - Public handbook: Tournament rules (`/teams/rules`) — see also `docs/tournament-rules-freetail-2027.md`.
@@ -994,8 +994,8 @@ Privacy-respecting analytics should be preferred.
 These decisions do not block initial application architecture, but they affect content and later workflows:
 
 **Decided (published in Tournament rules / site copy):**
-- Final team entry fee → $700
-- Multi-division / affiliate discount → $650 / $625 / $600
+- Final team entry fee → $650
+- Multi-division / affiliate discount → $600 / $575 / $550
 - Legacy / Freetail kit credit → $50 off that team
 - Acceptance and cancellation / refund terms → published ladder
 - U18 eligibility → born on/after 1 Sept 2007; max 2 waivers from 1 June 2007; age-grade only
