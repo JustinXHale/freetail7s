@@ -20,6 +20,24 @@ Already done locally:
 
 Set `VITE_FIREBASE_AUTH_DOMAIN` to your **Hosting host** (e.g. `freetail7s.web.app`) in production builds. On `localhost` the app automatically uses `{projectId}.firebaseapp.com` so the Auth helper storage works. See [Firebase redirect best practices](https://firebase.google.com/docs/auth/web/redirect-best-practices).
 
+On Hosting (`freetail7s.web.app`), the app sets `authDomain` to that host, so Google’s redirect is:
+
+`https://freetail7s.web.app/__/auth/handler`
+
+#### Fix: `redirect_uri_mismatch` / “This app's request is invalid”
+
+1. [Firebase → Authentication → Settings → Authorized domains](https://console.firebase.google.com/project/freetail7s/authentication/settings)  
+   Add: `freetail7s.web.app` (and `localhost` if missing).
+
+2. [Google Cloud → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials?project=freetail7s)  
+   Open the **OAuth 2.0 Client ID** of type **Web application** (often named like “Web client (auto created by Google Service)” / used by Firebase).  
+   Under **Authorized redirect URIs**, add **exactly**:
+   - `https://freetail7s.firebaseapp.com/__/auth/handler`
+   - `https://freetail7s.web.app/__/auth/handler`  
+   Save, wait a minute, hard-refresh `/login`, try Google again.
+
+3. Confirm Google is enabled under Authentication → Sign-in method.
+
 ### PWA note
 
 The service worker must not intercept Firebase Auth helper URLs (`/__/auth/...`). `vite.config.ts` sets `navigateFallbackDenylist: [/^\/__\//]` for this.

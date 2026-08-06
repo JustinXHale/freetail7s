@@ -4,9 +4,14 @@ export const RULES_PATH = '/teams/rules'
 
 export const TOURNAMENT_CONTACT = {
   name: 'Justin Hale',
-  phoneDisplay: '979.703.0897',
-  phoneTel: '+19797030897',
+  email: 'info@freetail7s.com',
   whatsappLabel: 'tournament WhatsApp',
+} as const
+
+export const LEGACY_CONTACT = {
+  name: 'Legacy Ecowear',
+  email: 'info@legacyecowear.com',
+  url: 'https://www.legacyecowear.com',
 } as const
 
 export const U18_ELIGIBILITY = {
@@ -67,7 +72,7 @@ const BLOCK_CONTACT: RulesBlock = {
   id: 'contact',
   title: 'Tournament contact',
   paragraphs: [
-    'Day-of tournament director: Justin Hale, 979.703.0897, or the tournament WhatsApp. Team managers are responsible for ensuring players and staff know these rules.',
+    'Day-of tournament director: Justin Hale, info@freetail7s.com, or the tournament WhatsApp. Team managers are responsible for ensuring players and staff know these rules.',
   ],
 }
 

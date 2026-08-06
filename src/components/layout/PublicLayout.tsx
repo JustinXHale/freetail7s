@@ -4,6 +4,7 @@ import { useAuth } from '../../context/auth-context'
 import { useEvent, useOfflineCacheFlag } from '../../hooks/useTournament'
 import { isAdmin } from '../../types/models'
 import logo from '../../assets/logos/ft7s-full.png'
+import { TOURNAMENT_CONTACT } from '../../data/tournamentRules'
 import { PhotoViewerProvider } from '../media/PhotoLightbox'
 import './PublicLayout.css'
 import './JumpLinks.css'
@@ -85,14 +86,33 @@ export function PublicLayout() {
         </a>
         <header className="site-header">
           <div className="container site-header__inner">
-            <Link to="/" className="site-logo" onClick={() => setOpen(false)}>
-              <img
-                src={logo}
-                alt="Freetail 7s Rugby Tournament"
-                width={140}
-                height={108}
-              />
-            </Link>
+            <div className="site-header__brand">
+              <Link to="/" className="site-logo" onClick={() => setOpen(false)}>
+                <img
+                  src={logo}
+                  alt="Freetail 7s Rugby Tournament"
+                  width={140}
+                  height={108}
+                />
+              </Link>
+              <span className="site-header__x" aria-hidden="true">
+                ×
+              </span>
+              <a
+                href="https://www.legacyecowear.com"
+                className="site-sponsor"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="site-sponsor__label">Title sponsor</span>
+                <img
+                  src="/sponsors/LegacyEcowearLongLogo.svg"
+                  alt="Legacy Ecowear — title sponsor"
+                  width={480}
+                  height={114}
+                />
+              </a>
+            </div>
             <button
               className="nav-toggle"
               aria-expanded={open}
@@ -209,6 +229,11 @@ export function PublicLayout() {
               <p className="footer-brand">Freetail 7s</p>
               <p>January 1–3, 2027 · Huns Rugby Ranch · Austin, Texas</p>
               <p>Title sponsor: Legacy Ecowear</p>
+              <p>
+                <a href={`mailto:${TOURNAMENT_CONTACT.email}`}>
+                  {TOURNAMENT_CONTACT.email}
+                </a>
+              </p>
             </div>
             <div>
               <p className="footer-heading">Navigate</p>

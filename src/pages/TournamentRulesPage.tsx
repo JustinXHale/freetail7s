@@ -73,8 +73,8 @@ export function TournamentRulesPage() {
         Freetail 7s 2027 · January 1–3 · Huns Rugby Ranch, Austin, Texas.
         Day-of contact:{' '}
         <strong>{TOURNAMENT_CONTACT.name}</strong>,{' '}
-        <a href={`tel:${TOURNAMENT_CONTACT.phoneTel}`}>
-          {TOURNAMENT_CONTACT.phoneDisplay}
+        <a href={`mailto:${TOURNAMENT_CONTACT.email}`}>
+          {TOURNAMENT_CONTACT.email}
         </a>
         , or the {TOURNAMENT_CONTACT.whatsappLabel}.
       </p>

@@ -1,7 +1,7 @@
 # Freetail 7s 2027 — Tournament rules
 
 **Event:** January 1–3, 2027 · Huns Rugby Ranch, 4107 Nixon Lane, Austin, Texas  
-**Day-of contact:** Justin Hale · 979.703.0897 · tournament WhatsApp  
+**Day-of contact:** Justin Hale · info@freetail7s.com · tournament WhatsApp  
 
 Public page: `/teams/rules`  
 Shared copy module: `src/data/tournamentRules.ts`
@@ -18,7 +18,7 @@ Team managers are responsible for ensuring players and staff know these rules.
 
 ### Tournament contact
 
-Day-of tournament director: Justin Hale, 979.703.0897, or the tournament WhatsApp. Team managers are responsible for ensuring players and staff know these rules.
+Day-of tournament director: Justin Hale, info@freetail7s.com, or the tournament WhatsApp. Team managers are responsible for ensuring players and staff know these rules.
 
 ### Tournament structure
 

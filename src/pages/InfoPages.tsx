@@ -1,12 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Button } from '../components/ui/Button'
-import { Field, TextInput, TextTextarea } from '../components/ui/Field'
+import { TextInput } from '../components/ui/Field'
 import {
   useAnnouncements,
   useEmailSignup,
   useEvent,
   useFaqs,
-  useSubmitContact,
 } from '../hooks/useTournament'
 import { EVENT_DATES } from '../data/eventCopy'
 import { PAGE_PHOTOS, RANCH_PHOTOS } from '../data/photos'
@@ -14,9 +13,11 @@ import {
   ACCEPTANCE_PAYMENT_SUMMARY,
   DIVISION_VIABILITY_SUMMARY,
   FEE_ROWS,
+  LEGACY_CONTACT,
   PRIZE_SUMMARY,
   REFUND_SUMMARY,
   RULES_PATH,
+  TOURNAMENT_CONTACT,
   U18_ELIGIBILITY,
 } from '../data/tournamentRules'
 import { Link } from 'react-router-dom'
@@ -119,6 +120,10 @@ const SPONSORS = [
           Their focus is sustainable product quality and straightforward
           ordering for clubs and tournaments. They host Freetail 7s as title
           sponsor.
+        </p>
+        <p>
+          Kit and sponsor questions:{' '}
+          <a href={`mailto:${LEGACY_CONTACT.email}`}>{LEGACY_CONTACT.email}</a>
         </p>
       </>
     ),
@@ -231,55 +236,57 @@ export function FaqPage() {
 }
 
 export function ContactPage() {
-  const submit = useSubmitContact()
-  const [done, setDone] = useState(false)
-
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const form = e.currentTarget
-    const fd = new FormData(form)
-    await submit({
-      name: String(fd.get('name')),
-      email: String(fd.get('email')),
-      subject: String(fd.get('subject')),
-      message: String(fd.get('message')),
-      honeypot: String(fd.get('company') ?? ''),
-    })
-    setDone(true)
-    form.reset()
-  }
-
   return (
     <div className="container section" style={{ maxWidth: 640 }}>
       <PagePhotoBand photo={PAGE_PHOTOS.contact} />
       <h1>Contact</h1>
-      {done ? (
-        <p
-          role="status"
-          style={{ color: 'var(--color-success)', fontWeight: 700 }}
-        >
-          Message sent. We will get back to you soon.
+      <p>
+        Reach the right person directly — no form. Email is best for most
+        questions; use the tournament WhatsApp for day-of coordination.
+      </p>
+
+      <section style={{ marginTop: '1.75rem' }} aria-labelledby="contact-freetail">
+        <h2 id="contact-freetail" style={{ fontSize: '1.35rem' }}>
+          Freetail 7s
+        </h2>
+        <p>
+          Tournament director: <strong>{TOURNAMENT_CONTACT.name}</strong>
         </p>
-      ) : null}
-      <form onSubmit={onSubmit}>
-        <div className="hp" aria-hidden="true">
-          <label htmlFor="company">Company</label>
-          <input id="company" name="company" tabIndex={-1} autoComplete="off" />
-        </div>
-        <Field label="Name" htmlFor="name">
-          <TextInput id="name" name="name" required />
-        </Field>
-        <Field label="Email" htmlFor="email">
-          <TextInput id="email" name="email" type="email" required />
-        </Field>
-        <Field label="Subject" htmlFor="subject">
-          <TextInput id="subject" name="subject" required />
-        </Field>
-        <Field label="Message" htmlFor="message">
-          <TextTextarea id="message" name="message" required maxLength={5000} />
-        </Field>
-        <Button type="submit">Send</Button>
-      </form>
+        <ul style={{ paddingLeft: '1.15rem', lineHeight: 1.7 }}>
+          <li>
+            Email:{' '}
+            <a href={`mailto:${TOURNAMENT_CONTACT.email}`}>
+              {TOURNAMENT_CONTACT.email}
+            </a>
+          </li>
+          <li>{TOURNAMENT_CONTACT.whatsappLabel}</li>
+        </ul>
+      </section>
+
+      <section style={{ marginTop: '1.75rem' }} aria-labelledby="contact-legacy">
+        <h2 id="contact-legacy" style={{ fontSize: '1.35rem' }}>
+          {LEGACY_CONTACT.name}
+        </h2>
+        <p>Title sponsor &amp; event host — kits, gear, and sponsor questions.</p>
+        <ul style={{ paddingLeft: '1.15rem', lineHeight: 1.7 }}>
+          <li>
+            Email:{' '}
+            <a href={`mailto:${LEGACY_CONTACT.email}`}>
+              {LEGACY_CONTACT.email}
+            </a>
+          </li>
+          <li>
+            Web:{' '}
+            <a
+              href={LEGACY_CONTACT.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              www.legacyecowear.com
+            </a>
+          </li>
+        </ul>
+      </section>
     </div>
   )
 }
