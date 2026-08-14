@@ -25,8 +25,13 @@ import {
 import { EVENT_ID } from '../../lib/collections'
 
 export function AdminDashboard() {
-  const { applications } = useApplications()
-  const { refereeApplications } = useRefereeApplications()
+  const { applications, loading: appsLoading, error: appsError } =
+    useApplications()
+  const {
+    refereeApplications,
+    loading: refLoading,
+    error: refError,
+  } = useRefereeApplications()
   const { state } = useDemo()
   const byStatus = (s: ApplicationStatus) =>
     applications.filter((a) => a.status === s).length
@@ -34,13 +39,22 @@ export function AdminDashboard() {
   return (
     <div>
       <h1>Dashboard</h1>
+      {appsError || refError ? (
+        <p role="alert" style={{ color: 'var(--color-danger, #c62828)' }}>
+          {appsError || refError}
+        </p>
+      ) : null}
       <div className="admin-card-grid">
         <div className="admin-card">
-          <strong className="tabular">{applications.length}</strong>
+          <strong className="tabular">
+            {appsLoading ? '…' : applications.length}
+          </strong>
           Team apps
         </div>
         <div className="admin-card">
-          <strong className="tabular">{refereeApplications.length}</strong>
+          <strong className="tabular">
+            {refLoading ? '…' : refereeApplications.length}
+          </strong>
           Referee apps
         </div>
         <div className="admin-card">
@@ -66,9 +80,13 @@ export function AdminDashboard() {
 }
 
 export function AdminApplicationsPage() {
-  const { applications, updateStatus } = useApplications()
-  const { refereeApplications, updateStatus: updateRefereeStatus } =
-    useRefereeApplications()
+  const { applications, updateStatus, loading, error } = useApplications()
+  const {
+    refereeApplications,
+    updateStatus: updateRefereeStatus,
+    loading: refLoading,
+    error: refError,
+  } = useRefereeApplications()
   const [tab, setTab] = useState<'team' | 'referee'>('team')
   const statuses: ApplicationStatus[] = [
     'submitted',
@@ -198,6 +216,13 @@ export function AdminApplicationsPage() {
           Export CSV
         </Button>
       </div>
+
+      {error || refError ? (
+        <p role="alert" style={{ color: 'var(--color-danger, #c62828)' }}>
+          {error || refError}
+        </p>
+      ) : null}
+      {loading || refLoading ? <p>Loading applications…</p> : null}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <Button

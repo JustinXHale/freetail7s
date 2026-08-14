@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Button, ButtonLink } from '../components/ui/Button'
 import {
   Field,
@@ -264,6 +264,50 @@ export function RefereeApplyPage() {
   )
 }
 
+export function TeamApplySubmittedPage() {
+  const location = useLocation()
+  const count =
+    typeof (location.state as { count?: unknown } | null)?.count === 'number'
+      ? (location.state as { count: number }).count
+      : 1
+
+  return (
+    <div className="container section apply-form-page">
+      <h1>Application submitted</h1>
+      <p role="status">
+        {count > 1
+          ? `${count} team applications received (one per team). `
+          : 'Your team application was received. '}
+        The organizer will review privately and follow up by email.
+      </p>
+      <div className="auth-page__actions" style={{ marginTop: '1.5rem' }}>
+        <ButtonLink to="/">Home</ButtonLink>
+        <ButtonLink to="/apply" variant="secondary">
+          Back to Apply
+        </ButtonLink>
+      </div>
+    </div>
+  )
+}
+
+export function RefereeApplySubmittedPage() {
+  return (
+    <div className="container section apply-form-page">
+      <h1>Application submitted</h1>
+      <p role="status">
+        Your referee application was received. We&apos;ll review it and follow
+        up by email.
+      </p>
+      <div className="auth-page__actions" style={{ marginTop: '1.5rem' }}>
+        <ButtonLink to="/">Home</ButtonLink>
+        <ButtonLink to="/apply" variant="secondary">
+          Back to Apply
+        </ButtonLink>
+      </div>
+    </div>
+  )
+}
+
 type TeamSlot = {
   id: string
   teamName: string
@@ -292,9 +336,8 @@ function emptyTeamSlot(open: boolean, teamName = ''): TeamSlot {
 function TeamApplyForm() {
   const divisions = useDivisions()
   const submit = useSubmitApplication()
+  const navigate = useNavigate()
   const { profile, user } = useAuth()
-  const [done, setDone] = useState(false)
-  const [submittedCount, setSubmittedCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [teamCount, setTeamCount] = useState(1)
@@ -396,13 +439,10 @@ function TeamApplyForm() {
           legacyKitInterest: t.legacyKitInterest,
         })),
       )
-      setSubmittedCount(teams.length)
-      setDone(true)
-      form.reset()
-      setTeamCount(1)
-      setOrganizationName('')
-      setDefaultTeamName('')
-      setTeams([emptyTeamSlot(true)])
+      navigate('/apply/team/submitted', {
+        replace: true,
+        state: { count: teams.length },
+      })
     } catch (err) {
       setError(
         err instanceof Error
@@ -425,14 +465,6 @@ function TeamApplyForm() {
         eligibility is in the <Link to={RULES_PATH}>Tournament rules</Link>.
       </p>
 
-      {done ? (
-        <p role="status" className="apply-form__success">
-          {submittedCount > 1
-            ? `${submittedCount} applications received (one per team). `
-            : 'Application received. '}
-          The organizer will review privately and follow up by email.
-        </p>
-      ) : null}
       {error ? (
         <p role="alert" className="apply-form__error">
           {error}
@@ -757,8 +789,8 @@ function TeamApplyForm() {
 function RefereeApplyForm() {
   const divisions = useDivisions()
   const submit = useSubmitRefereeApplication()
+  const navigate = useNavigate()
   const { profile, user } = useAuth()
-  const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [competition, setCompetition] =
@@ -830,9 +862,7 @@ function RefereeApplyForm() {
         matchFootageUrl: footageRaw || undefined,
         honeypot,
       })
-      setDone(true)
-      form.reset()
-      setCompetition('localClub')
+      navigate('/apply/referee/submitted', { replace: true })
     } catch (err) {
       setError(
         err instanceof Error
@@ -854,12 +884,6 @@ function RefereeApplyForm() {
         Project Pōpolo.
       </p>
 
-      {done ? (
-        <p role="status" className="apply-form__success">
-          Referee application received. We&apos;ll review it and follow up by
-          email.
-        </p>
-      ) : null}
       {error ? (
         <p role="alert" className="apply-form__error">
           {error}

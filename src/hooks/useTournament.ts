@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useDemo } from '../context/useDemo'
 import { useAuth } from '../context/auth-context'
 import type {
@@ -10,6 +11,14 @@ import type {
   RefereeApplicationDoc,
 } from '../types/models'
 import { EVENT_ID } from '../lib/collections'
+import {
+  createRefereeApplication,
+  createTeamApplications,
+  subscribeRefereeApplications,
+  subscribeTeamApplications,
+  updateApplicationStatus,
+  updateRefereeApplicationStatus,
+} from '../lib/firestoreApps'
 
 export function useEvent() {
   const { state } = useDemo()
@@ -97,35 +106,105 @@ export function useMvpNominees() {
 }
 
 export function useApplications() {
-  const { state, setState } = useDemo()
+  const { state, setState, usingDemo } = useDemo()
+  const [remote, setRemote] = useState<ApplicationDoc[]>([])
+  const [loading, setLoading] = useState(!usingDemo)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (usingDemo) {
+      setLoading(false)
+      setError(null)
+      return
+    }
+    setLoading(true)
+    return subscribeTeamApplications(
+      (docs) => {
+        setRemote(docs)
+        setLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error(err)
+        setError(
+          err.message.includes('permission')
+            ? 'Cannot load applications. Confirm your account role is admin.'
+            : err.message,
+        )
+        setLoading(false)
+      },
+    )
+  }, [usingDemo])
+
   return {
-    applications: state.applications,
-    updateStatus: (id: string, status: ApplicationStatus) => {
-      setState((prev) => ({
-        ...prev,
-        applications: prev.applications.map((a) =>
-          a.id === id
-            ? { ...a, status, updatedAt: new Date().toISOString() }
-            : a,
-        ),
-      }))
+    applications: usingDemo ? state.applications : remote,
+    loading,
+    error,
+    updateStatus: async (id: string, status: ApplicationStatus) => {
+      if (usingDemo) {
+        setState((prev) => ({
+          ...prev,
+          applications: prev.applications.map((a) =>
+            a.id === id
+              ? { ...a, status, updatedAt: new Date().toISOString() }
+              : a,
+          ),
+        }))
+        return
+      }
+      await updateApplicationStatus(id, status)
     },
   }
 }
 
 export function useRefereeApplications() {
-  const { state, setState } = useDemo()
+  const { state, setState, usingDemo } = useDemo()
+  const [remote, setRemote] = useState<RefereeApplicationDoc[]>([])
+  const [loading, setLoading] = useState(!usingDemo)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (usingDemo) {
+      setLoading(false)
+      setError(null)
+      return
+    }
+    setLoading(true)
+    return subscribeRefereeApplications(
+      (docs) => {
+        setRemote(docs)
+        setLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error(err)
+        setError(
+          err.message.includes('permission')
+            ? 'Cannot load referee applications. Confirm your account role is admin.'
+            : err.message,
+        )
+        setLoading(false)
+      },
+    )
+  }, [usingDemo])
+
   return {
-    refereeApplications: state.refereeApplications,
-    updateStatus: (id: string, status: ApplicationStatus) => {
-      setState((prev) => ({
-        ...prev,
-        refereeApplications: prev.refereeApplications.map((a) =>
-          a.id === id
-            ? { ...a, status, updatedAt: new Date().toISOString() }
-            : a,
-        ),
-      }))
+    refereeApplications: usingDemo ? state.refereeApplications : remote,
+    loading,
+    error,
+    updateStatus: async (id: string, status: ApplicationStatus) => {
+      if (usingDemo) {
+        setState((prev) => ({
+          ...prev,
+          refereeApplications: prev.refereeApplications.map((a) =>
+            a.id === id
+              ? { ...a, status, updatedAt: new Date().toISOString() }
+              : a,
+          ),
+        }))
+        return
+      }
+      await updateRefereeApplicationStatus(id, status)
     },
   }
 }
@@ -136,12 +215,20 @@ type ApplicationInput = Omit<
 > & { honeypot?: string }
 
 export function useSubmitApplication() {
-  const { setState } = useDemo()
+  const { setState, usingDemo } = useDemo()
   const { user } = useAuth()
   return async (input: ApplicationInput | ApplicationInput[]) => {
     const list = Array.isArray(input) ? input : [input]
-    if (list.some((item) => item.honeypot)) return { ok: true as const, ids: [] as string[] }
+    if (list.some((item) => item.honeypot)) {
+      return { ok: true as const, ids: [] as string[] }
+    }
     if (!user?.uid) throw new Error('Sign in required to apply.')
+
+    if (!usingDemo) {
+      const ids = await createTeamApplications(list, user.uid)
+      return { ok: true as const, ids }
+    }
+
     const now = new Date().toISOString()
     const docs: ApplicationDoc[] = list.map((item) => {
       const { honeypot: _hp, ...rest } = item
@@ -164,7 +251,7 @@ export function useSubmitApplication() {
 }
 
 export function useSubmitRefereeApplication() {
-  const { setState } = useDemo()
+  const { setState, usingDemo } = useDemo()
   const { user } = useAuth()
   return async (
     input: Omit<
@@ -172,7 +259,7 @@ export function useSubmitRefereeApplication() {
       'id' | 'createdAt' | 'updatedAt' | 'status' | 'eventId' | 'submittedByUid'
     > & { honeypot?: string },
   ) => {
-    if (input.honeypot) return { ok: true as const }
+    if (input.honeypot) return { ok: true as const, id: '' }
     if (!user?.uid) throw new Error('Sign in required to apply.')
     if (input.positions.length === 0) {
       throw new Error('Select at least one position.')
@@ -180,6 +267,12 @@ export function useSubmitRefereeApplication() {
     if (input.divisionCodes.length === 0) {
       throw new Error('Select at least one division.')
     }
+
+    if (!usingDemo) {
+      const id = await createRefereeApplication(input, user.uid)
+      return { ok: true as const, id }
+    }
+
     const now = new Date().toISOString()
     const doc: RefereeApplicationDoc = {
       ...input,

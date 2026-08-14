@@ -6,7 +6,7 @@ import { PublicLayout } from './components/layout/PublicLayout'
 import { AdminLayout } from './components/layout/AdminLayout'
 import { HomePage } from './pages/HomePage'
 import { TournamentPage } from './pages/TournamentPage'
-import { ApplyPage, RefereeApplyPage, TeamApplyPage } from './pages/ApplyPage'
+import { ApplyPage, RefereeApplyPage, TeamApplyPage, TeamApplySubmittedPage, RefereeApplySubmittedPage } from './pages/ApplyPage'
 import { TeamDetailPage } from './pages/TeamDetailPage'
 import { TournamentRulesPage } from './pages/TournamentRulesPage'
 import {
@@ -66,12 +66,20 @@ export default function App() {
                 }
               />
               <Route
+                path="apply/team/submitted"
+                element={<TeamApplySubmittedPage />}
+              />
+              <Route
                 path="apply/referee"
                 element={
                   <RequireAuth>
                     <RefereeApplyPage />
                   </RequireAuth>
                 }
+              />
+              <Route
+                path="apply/referee/submitted"
+                element={<RefereeApplySubmittedPage />}
               />
               <Route
                 path="teams"
