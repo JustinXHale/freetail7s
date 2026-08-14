@@ -10,6 +10,7 @@ import type {
   MatchDoc,
   MvpNomineeDoc,
   RefereeApplicationDoc,
+  TeamDoc,
 } from '../types/models'
 import { EVENT_ID } from '../lib/collections'
 import {
@@ -26,6 +27,14 @@ import {
   updateEventSettings,
   type EventSettingsPatch,
 } from '../lib/firestoreEvent'
+import {
+  createTeam,
+  deleteTeam,
+  subscribeEventTeams,
+  subscribePublishedTeams,
+  updateTeam,
+  type TeamUpdateInput,
+} from '../lib/firestoreTeams'
 
 export function useEvent() {
   const { state, usingDemo } = useDemo()
@@ -83,15 +92,136 @@ export function useUpdateEventSettings() {
 }
 
 export function useTeams(divisionCode?: DivisionCode) {
-  const { state } = useDemo()
-  const teams = state.teams.filter((t) => t.published)
+  const { state, usingDemo } = useDemo()
+  const [remote, setRemote] = useState<TeamDoc[] | null>(null)
+
+  useEffect(() => {
+    if (usingDemo) {
+      setRemote(null)
+      return
+    }
+    return subscribePublishedTeams(
+      (docs) => setRemote(docs),
+      (err) => console.error(err),
+    )
+  }, [usingDemo])
+
+  const teams = usingDemo
+    ? state.teams.filter((t) => t.published)
+    : (remote ?? [])
   if (!divisionCode) return teams
   return teams.filter((t) => t.divisionCode === divisionCode)
 }
 
 export function useTeam(slug: string) {
-  const { state } = useDemo()
-  return state.teams.find((t) => t.slug === slug)
+  const teams = useTeams()
+  return teams.find((t) => t.slug === slug)
+}
+
+export function useAdminTeams() {
+  const { state, setState, usingDemo } = useDemo()
+  const [remote, setRemote] = useState<TeamDoc[]>([])
+  const [loading, setLoading] = useState(!usingDemo)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (usingDemo) {
+      setLoading(false)
+      setError(null)
+      return
+    }
+    setLoading(true)
+    return subscribeEventTeams(
+      (docs) => {
+        setRemote(docs)
+        setLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error(err)
+        setError(
+          err.message.includes('permission')
+            ? 'Cannot load teams. Confirm your account role is admin.'
+            : err.message,
+        )
+        setLoading(false)
+      },
+    )
+  }, [usingDemo])
+
+  return {
+    teams: usingDemo ? state.teams : remote,
+    loading,
+    error,
+    addTeam: async (name: string, divisionCode: DivisionCode) => {
+      if (usingDemo) {
+        const now = new Date().toISOString()
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+        setState((prev) => ({
+          ...prev,
+          teams: [
+            ...prev.teams,
+            {
+              id: `team-${crypto.randomUUID()}`,
+              eventId: EVENT_ID,
+              divisionId: divisionCode,
+              divisionCode,
+              name,
+              slug,
+              location: 'TBD',
+              hometown: 'TBD',
+              published: false,
+              paymentStatus: 'unpaid',
+              managerUserIds: [],
+              rosterAccess: 'shell',
+              createdAt: now,
+              updatedAt: now,
+            },
+          ],
+        }))
+        return
+      }
+      await createTeam({ name, divisionCode })
+    },
+    saveTeam: async (id: string, patch: TeamUpdateInput) => {
+      if (usingDemo) {
+        setState((prev) => ({
+          ...prev,
+          teams: prev.teams.map((t) =>
+            t.id !== id
+              ? t
+              : {
+                  ...t,
+                  ...patch,
+                  updatedAt: new Date().toISOString(),
+                },
+          ),
+        }))
+        return
+      }
+      await updateTeam(id, patch)
+    },
+    removeTeam: async (id: string) => {
+      if (usingDemo) {
+        setState((prev) => ({
+          ...prev,
+          teams: prev.teams.filter((x) => x.id !== id),
+          pools: prev.pools.map((p) => ({
+            ...p,
+            teamIds: p.teamIds.filter((tid) => tid !== id),
+          })),
+          matches: prev.matches.map((m) => ({
+            ...m,
+            homeTeamId: m.homeTeamId === id ? null : m.homeTeamId,
+            awayTeamId: m.awayTeamId === id ? null : m.awayTeamId,
+          })),
+          standings: prev.standings.filter((s) => s.teamId !== id),
+        }))
+        return
+      }
+      await deleteTeam(id)
+    },
+  }
 }
 
 export function useMatches(filters?: {
@@ -414,9 +544,13 @@ export function useAdminMvp() {
 }
 
 export function useTeamName(id: string | null) {
-  const { state } = useDemo()
+  const published = useTeams()
+  const { state, usingDemo } = useDemo()
   if (!id) return 'TBD'
-  return state.teams.find((t) => t.id === id)?.name ?? 'TBD'
+  if (usingDemo) {
+    return state.teams.find((t) => t.id === id)?.name ?? 'TBD'
+  }
+  return published.find((t) => t.id === id)?.name ?? 'TBD'
 }
 
 export function useOfflineCacheFlag() {

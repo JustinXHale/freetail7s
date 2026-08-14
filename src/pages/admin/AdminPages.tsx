@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Field, TextInput, TextSelect } from '../../components/ui/Field'
@@ -6,7 +6,9 @@ import { useDemo } from '../../context/useDemo'
 import {
   useAdminMatches,
   useAdminMvp,
+  useAdminTeams,
   useApplications,
+  useDivisions,
   useEvent,
   useRefereeApplications,
   useTeamName,
@@ -14,9 +16,11 @@ import {
 } from '../../hooks/useTournament'
 import type {
   ApplicationStatus,
+  DivisionCode,
   MatchDoc,
   MatchStatus,
   MvpNomineeDoc,
+  PaymentStatus,
 } from '../../types/models'
 import {
   REFEREE_POSITION_LABELS,
@@ -364,49 +368,53 @@ export function AdminApplicationsPage() {
 }
 
 export function AdminTeamsPage() {
-  const { state, setState } = useDemo()
+  const { teams, loading, error, addTeam, saveTeam, removeTeam } =
+    useAdminTeams()
+  const divisions = useDivisions()
   const [name, setName] = useState('')
-  const [divisionCode, setDivisionCode] = useState('premier-men')
+  const [divisionCode, setDivisionCode] = useState<DivisionCode>('premier-men')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  const editing = state.teams.find((t) => t.id === editingId) ?? null
+  const editing = teams.find((t) => t.id === editingId) ?? null
+
+  async function onAdd(e: FormEvent) {
+    e.preventDefault()
+    setActionError(null)
+    setPending(true)
+    try {
+      await addTeam(name.trim(), divisionCode)
+      setName('')
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Could not add team.',
+      )
+    } finally {
+      setPending(false)
+    }
+  }
 
   return (
     <div>
       <h1>Teams</h1>
       <p>
-        Edit team details here. Coach and player roster forms stay locked
-        (profile shell) until accepted managers get access later.
+        Teams are stored in Firestore. Coach and player roster forms stay locked
+        until accepted managers get access later.
       </p>
+      {error ? (
+        <p role="alert" style={{ color: 'var(--color-danger, #c62828)' }}>
+          {error}
+        </p>
+      ) : null}
+      {actionError ? (
+        <p role="alert" style={{ color: 'var(--color-danger, #c62828)' }}>
+          {actionError}
+        </p>
+      ) : null}
+      {loading ? <p>Loading teams…</p> : null}
       <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          const now = new Date().toISOString()
-          const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-          setState((prev) => ({
-            ...prev,
-            teams: [
-              ...prev.teams,
-              {
-                id: `team-${crypto.randomUUID()}`,
-                eventId: EVENT_ID,
-                divisionId: divisionCode,
-                divisionCode: divisionCode as never,
-                name,
-                slug,
-                location: 'TBD',
-                hometown: 'TBD',
-                published: false,
-                paymentStatus: 'unpaid',
-                managerUserIds: [],
-                rosterAccess: 'shell',
-                createdAt: now,
-                updatedAt: now,
-              },
-            ],
-          }))
-          setName('')
-        }}
+        onSubmit={(e) => void onAdd(e)}
         style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}
       >
         <TextInput
@@ -414,18 +422,21 @@ export function AdminTeamsPage() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
+          disabled={pending}
         />
         <TextSelect
           value={divisionCode}
-          onChange={(e) => setDivisionCode(e.target.value)}
+          disabled={pending}
+          onChange={(e) => setDivisionCode(e.target.value as DivisionCode)}
         >
-          <option value="premier-men">Premier Men</option>
-          <option value="premier-women">Premier Women</option>
-          <option value="elite-u18-boys">Elite U18 Boys</option>
-          <option value="elite-u18-girls">Elite U18 Girls</option>
+          {divisions.map((d) => (
+            <option key={d.id} value={d.code}>
+              {d.name}
+            </option>
+          ))}
         </TextSelect>
-        <Button type="submit" size="sm">
-          Add team
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? 'Saving…' : 'Add team'}
         </Button>
       </form>
       <table className="admin-table">
@@ -441,7 +452,7 @@ export function AdminTeamsPage() {
           </tr>
         </thead>
         <tbody>
-          {state.teams.map((t) => (
+          {teams.map((t) => (
             <tr key={t.id}>
               <td>{t.name}</td>
               <td>{t.divisionCode}</td>
@@ -464,6 +475,7 @@ export function AdminTeamsPage() {
                   type="button"
                   size="sm"
                   variant="danger"
+                  disabled={pending}
                   onClick={() => {
                     if (
                       !window.confirm(
@@ -473,24 +485,17 @@ export function AdminTeamsPage() {
                       return
                     }
                     setEditingId((id) => (id === t.id ? null : id))
-                    setState((prev) => ({
-                      ...prev,
-                      teams: prev.teams.filter((x) => x.id !== t.id),
-                      pools: prev.pools.map((p) => ({
-                        ...p,
-                        teamIds: p.teamIds.filter((id) => id !== t.id),
-                      })),
-                      matches: prev.matches.map((m) => ({
-                        ...m,
-                        homeTeamId:
-                          m.homeTeamId === t.id ? null : m.homeTeamId,
-                        awayTeamId:
-                          m.awayTeamId === t.id ? null : m.awayTeamId,
-                      })),
-                      standings: prev.standings.filter(
-                        (s) => s.teamId !== t.id,
-                      ),
-                    }))
+                    setPending(true)
+                    setActionError(null)
+                    void removeTeam(t.id)
+                      .catch((err) =>
+                        setActionError(
+                          err instanceof Error
+                            ? err.message
+                            : 'Could not remove team.',
+                        ),
+                      )
+                      .finally(() => setPending(false))
                   }}
                 >
                   Remove
@@ -500,6 +505,9 @@ export function AdminTeamsPage() {
           ))}
         </tbody>
       </table>
+      {!loading && teams.length === 0 ? (
+        <p>No teams yet. Add one above — deletes stay gone after refresh.</p>
+      ) : null}
 
       {editing ? (
         <form
@@ -516,38 +524,36 @@ export function AdminTeamsPage() {
             const fd = new FormData(e.currentTarget)
             const nextName = String(fd.get('name'))
             const hometown = String(fd.get('hometown'))
-            const now = new Date().toISOString()
-            setState((prev) => ({
-              ...prev,
-              teams: prev.teams.map((t) =>
-                t.id !== editing.id
-                  ? t
-                  : {
-                      ...t,
-                      name: nextName,
-                      slug: nextName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-                      divisionCode: String(fd.get('divisionCode')) as never,
-                      divisionId: String(fd.get('divisionCode')),
-                      hometown,
-                      location: hometown,
-                      website: String(fd.get('website') || '') || undefined,
-                      instagram: String(fd.get('instagram') || '') || undefined,
-                      facebook: String(fd.get('facebook') || '') || undefined,
-                      description:
-                        String(fd.get('description') || '') || undefined,
-                      paymentStatus: String(fd.get('paymentStatus')) as never,
-                      published: fd.get('published') === 'on',
-                      mailingAddress: {
-                        street: String(fd.get('street')),
-                        city: String(fd.get('city')),
-                        state: String(fd.get('state')),
-                        postalCode: String(fd.get('postalCode')),
-                        country: String(fd.get('country') || 'United States'),
-                      },
-                      updatedAt: now,
-                    },
-              ),
-            }))
+            setPending(true)
+            setActionError(null)
+            void saveTeam(editing.id, {
+              name: nextName,
+              slug: nextName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+              divisionCode: String(fd.get('divisionCode')) as DivisionCode,
+              divisionId: String(fd.get('divisionCode')),
+              hometown,
+              location: hometown,
+              website: String(fd.get('website') || '') || undefined,
+              instagram: String(fd.get('instagram') || '') || undefined,
+              facebook: String(fd.get('facebook') || '') || undefined,
+              description: String(fd.get('description') || '') || undefined,
+              paymentStatus: String(fd.get('paymentStatus')) as PaymentStatus,
+              published: fd.get('published') === 'on',
+              mailingAddress: {
+                street: String(fd.get('street')),
+                city: String(fd.get('city')),
+                state: String(fd.get('state')),
+                postalCode: String(fd.get('postalCode')),
+                country: String(fd.get('country') || 'United States'),
+              },
+            })
+              .then(() => setEditingId(null))
+              .catch((err) =>
+                setActionError(
+                  err instanceof Error ? err.message : 'Could not save team.',
+                ),
+              )
+              .finally(() => setPending(false))
           }}
         >
           <h2 style={{ marginTop: 0 }}>Edit · {editing.name}</h2>
@@ -569,10 +575,11 @@ export function AdminTeamsPage() {
               name="divisionCode"
               defaultValue={editing.divisionCode}
             >
-              <option value="premier-men">Premier Men</option>
-              <option value="premier-women">Premier Women</option>
-              <option value="elite-u18-boys">Elite U18 Boys</option>
-              <option value="elite-u18-girls">Elite U18 Girls</option>
+              {divisions.map((d) => (
+                <option key={d.id} value={d.code}>
+                  {d.name}
+                </option>
+              ))}
             </TextSelect>
           </Field>
           <Field label="Hometown" htmlFor="edit-hometown">
@@ -673,8 +680,8 @@ export function AdminTeamsPage() {
             Published (admin / future public listing)
           </label>
           <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-            <Button type="submit" size="sm">
-              Save team
+            <Button type="submit" size="sm" disabled={pending}>
+              {pending ? 'Saving…' : 'Save team'}
             </Button>
             <Button
               type="button"
