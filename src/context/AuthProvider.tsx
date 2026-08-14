@@ -79,8 +79,10 @@ async function ensureUserProfile(user: User): Promise<UserDoc> {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
+  // Persist teamId as null so security rules can compare it safely.
   await setDoc(ref, {
     ...profile,
+    teamId: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })

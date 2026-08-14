@@ -1,4 +1,4 @@
-import { NavLink, Link, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Link, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/auth-context'
 import { useEvent, useOfflineCacheFlag } from '../../hooks/useTournament'
@@ -28,10 +28,16 @@ export function PublicLayout() {
   const [tournamentOpen, setTournamentOpen] = useState(false)
   const aboutRef = useRef<HTMLLIElement>(null)
   const tournamentRef = useRef<HTMLLIElement>(null)
-  const { role, user } = useAuth()
+  const { role, user, loading, needsOnboarding } = useAuth()
   const event = useEvent()
   const { isStale } = useOfflineCacheFlag()
   const location = useLocation()
+
+  const onboardingExempt =
+    location.pathname === '/onboarding' ||
+    location.pathname === '/login' ||
+    location.pathname === '/privacy' ||
+    location.pathname === '/terms'
 
   useEffect(() => {
     setOpen(false)
@@ -61,6 +67,17 @@ export function PublicLayout() {
       document.removeEventListener('keydown', onKey)
     }
   }, [])
+
+  // Signed-in users must finish onboarding before browsing the rest of the app.
+  if (!loading && needsOnboarding && !onboardingExempt) {
+    const next = `${location.pathname}${location.search}`
+    return (
+      <Navigate
+        to={`/onboarding?next=${encodeURIComponent(next)}`}
+        replace
+      />
+    )
+  }
 
   const aboutActive = ABOUT_LINKS.some((l) => location.pathname === l.to)
   const tournamentActive =

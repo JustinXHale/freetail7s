@@ -20,7 +20,7 @@ const LINKS = [
 ]
 
 export function AdminLayout() {
-  const { user, role, loading, signOut } = useAuth()
+  const { user, role, loading, needsOnboarding, signOut } = useAuth()
 
   if (loading) {
     return <div className="admin-shell container section">Loading…</div>
@@ -30,6 +30,10 @@ export function AdminLayout() {
   const demoBypass =
     !import.meta.env.VITE_FIREBASE_API_KEY ||
     import.meta.env.VITE_USE_DEMO === 'true'
+
+  if (!demoBypass && user && needsOnboarding) {
+    return <Navigate to="/onboarding?next=/admin" replace />
+  }
 
   if (!demoBypass && (!user || !isAdmin(role))) {
     return <Navigate to="/login?next=/admin" replace />
