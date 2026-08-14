@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthProvider'
 import { DemoProvider } from './context/DemoProvider'
+import { ScrollToTop } from './components/ScrollToTop'
 import { PublicLayout } from './components/layout/PublicLayout'
 import { AdminLayout } from './components/layout/AdminLayout'
 import { HomePage } from './pages/HomePage'
@@ -48,6 +49,7 @@ export default function App() {
     <DemoProvider>
       <AuthProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             <Route element={<PublicLayout />}>
               <Route index element={<HomePage />} />
