@@ -11,18 +11,143 @@ import {
   SELF_SERVE_ROLE_HINTS,
   SELF_SERVE_ROLE_LABELS,
   SELF_SERVE_ROLES,
-  homePathForRole,
+  safeNextPath,
   type SelfServeRole,
+  type UserDoc,
+  type UserRole,
 } from '../types/models'
 import { PAGE_PHOTOS } from '../data/photos'
 import { PagePhotoBand } from '../components/media/PhotoLightbox'
 import './AuthPages.css'
 
-function nextPath(search: string | null, role: SelfServeRole | string): string {
-  if (search && search.startsWith('/') && !search.startsWith('//')) {
-    return search
+function AccountHub({
+  email,
+  profile,
+  role,
+  onSignOut,
+}: {
+  email: string | null
+  profile: UserDoc
+  role: UserRole
+  onSignOut: () => void
+}) {
+  const { updateSelfServeRole } = useAuth()
+  const canSelfServe = role !== 'admin'
+  const [selected, setSelected] = useState<SelfServeRole>(
+    canSelfServe && SELF_SERVE_ROLES.includes(role as SelfServeRole)
+      ? (role as SelfServeRole)
+      : 'fan',
+  )
+  const [pending, setPending] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function onSaveRole(e: FormEvent) {
+    e.preventDefault()
+    if (!canSelfServe) return
+    setError(null)
+    setMessage(null)
+    setPending(true)
+    try {
+      await updateSelfServeRole(selected)
+      setMessage(
+        selected === 'teamManager'
+          ? 'Role updated — you can use Apply and the team portal.'
+          : selected === 'referee'
+            ? 'Role updated — referee tools will use this account.'
+            : 'Role updated — you still have full fan access.',
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update role.')
+    } finally {
+      setPending(false)
+    }
   }
-  return homePathForRole(role as never)
+
+  return (
+    <div className="container section auth-page">
+      <PagePhotoBand photo={PAGE_PHOTOS.login} />
+      <h1>Your account</h1>
+      <p>
+        Signed in as{' '}
+        <strong>
+          {profile.firstName} {profile.lastName}
+        </strong>{' '}
+        ({email}) · role <strong>{SELF_SERVE_ROLE_LABELS[role as SelfServeRole] ?? role}</strong>
+      </p>
+      <p className="auth-page__fine">
+        Fan access is included for every signed-in account. You can switch
+        between fan, team manager, and referee if your needs change.
+      </p>
+
+      {canSelfServe ? (
+        <form className="auth-page__form" onSubmit={(e) => void onSaveRole(e)}>
+          <fieldset className="auth-page__roles">
+            <legend>Change role</legend>
+            {SELF_SERVE_ROLES.map((option) => (
+              <label
+                key={option}
+                className={`auth-page__role ${selected === option ? 'is-selected' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="account-role"
+                  value={option}
+                  checked={selected === option}
+                  onChange={() => {
+                    setSelected(option)
+                    setMessage(null)
+                    setError(null)
+                  }}
+                />
+                <span>
+                  <strong>{SELF_SERVE_ROLE_LABELS[option]}</strong>
+                  <small>{SELF_SERVE_ROLE_HINTS[option]}</small>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          {error ? (
+            <p className="auth-page__error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          {message ? (
+            <p className="auth-page__fine" role="status">
+              {message}
+            </p>
+          ) : null}
+          <div className="auth-page__actions">
+            <Button
+              type="submit"
+              disabled={pending || selected === role}
+            >
+              {pending ? 'Saving…' : 'Save role'}
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <p className="auth-page__fine">
+          Admin is assigned by organizers and is not changed here.
+        </p>
+      )}
+
+      <div className="auth-page__actions">
+        {role === 'admin' ? (
+          <ButtonLink to="/admin">Open admin</ButtonLink>
+        ) : null}
+        {role === 'teamManager' ? (
+          <ButtonLink to="/team-portal">Team portal</ButtonLink>
+        ) : null}
+        <ButtonLink to="/apply" variant="secondary">
+          Apply
+        </ButtonLink>
+        <Button variant="ghost" onClick={onSignOut}>
+          Sign out
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 export function LoginPage() {
@@ -51,40 +176,18 @@ export function LoginPage() {
   if (!loading && user && profile?.onboardingComplete) {
     // Deep-link after auth — otherwise show account hub
     if (next) {
-      return <Navigate to={nextPath(next, role)} replace />
+      return <Navigate to={safeNextPath(next, role)} replace />
     }
   }
 
   if (!loading && user && profile?.onboardingComplete && !next) {
     return (
-      <div className="container section auth-page">
-        <PagePhotoBand photo={PAGE_PHOTOS.login} />
-        <h1>Your account</h1>
-        <p>
-          Signed in as{' '}
-          <strong>
-            {profile.firstName} {profile.lastName}
-          </strong>{' '}
-          ({user.email}) · role <strong>{role}</strong>
-        </p>
-        <p className="auth-page__fine">
-          Fan access is included for every signed-in account.
-        </p>
-        <div className="auth-page__actions">
-          {role === 'admin' ? (
-            <ButtonLink to="/admin">Open admin</ButtonLink>
-          ) : null}
-          {role === 'teamManager' ? (
-            <ButtonLink to="/team-portal">Team portal</ButtonLink>
-          ) : null}
-          <ButtonLink to="/apply" variant="secondary">
-            Apply
-          </ButtonLink>
-          <Button variant="ghost" onClick={() => void signOut()}>
-            Sign out
-          </Button>
-        </div>
-      </div>
+      <AccountHub
+        email={user.email}
+        profile={profile}
+        role={role}
+        onSignOut={() => void signOut()}
+      />
     )
   }
 
@@ -191,7 +294,7 @@ export function OnboardingPage() {
   }
 
   if (!needsOnboarding && profile?.onboardingComplete) {
-    return <Navigate to={nextPath(next, profile.role)} replace />
+    return <Navigate to={safeNextPath(next, profile.role)} replace />
   }
 
   async function onSubmit(e: FormEvent) {
@@ -200,7 +303,7 @@ export function OnboardingPage() {
     setPending(true)
     try {
       await completeOnboarding({ firstName, lastName, role })
-      navigate(nextPath(next, role), { replace: true })
+      navigate(safeNextPath(next, role as UserRole), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save profile.')
     } finally {

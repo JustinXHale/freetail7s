@@ -20,6 +20,8 @@ export interface AuthContextValue {
   signInWithGoogle: () => Promise<User | null>
   signInWithApple: () => Promise<User | null>
   completeOnboarding: (input: OnboardingInput) => Promise<void>
+  /** Switch among fan / teamManager / referee after onboarding. Admin is not allowed. */
+  updateSelfServeRole: (role: SelfServeRole) => Promise<void>
   clearAuthError: () => void
   signOut: () => Promise<void>
 }

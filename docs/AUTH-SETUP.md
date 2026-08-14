@@ -76,16 +76,17 @@ Never commit `.p8` files.
 3. `/onboarding` asks for first name, last name (prefilled from the provider when possible), and a self-serve role
 4. Self-serve roles: **fan**, **team manager**, **referee** — **admin cannot be chosen**
 5. Every signed-in account keeps fan permissions regardless of primary role
-6. Form routes (`/apply/team`, `/apply/referee`) require a signed-in, onboarded account; `/apply` is public
+6. After onboarding, users can switch among fan / team manager / referee from **Account** (`/login`). Admin stays organizer-only.
+7. Form routes (`/apply/team`, `/apply/referee`) require a signed-in, onboarded account; `/apply` is public
 
 ## Roles
 
 | Role | How assigned | Access |
 |------|--------------|--------|
 | admin | Organizers only (`setUserRole` or Firestore) | Full admin |
-| teamManager | Onboarding (or admin) | Team portal, applications, athlete status |
-| referee | Onboarding (or admin) | Referee tools (coming) + fan access |
-| fan | Default / onboarding | Fan contests, browsing, updates |
+| teamManager | Onboarding, Account role switch, or admin | Team portal, applications, athlete status |
+| referee | Onboarding, Account role switch, or admin | Referee tools (coming) + fan access |
+| fan | Default / onboarding / Account role switch | Fan contests, browsing, updates |
 
 ## Local demo
 

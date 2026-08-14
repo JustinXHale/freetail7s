@@ -283,6 +283,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user, profile, demo],
   )
 
+  const updateSelfServeRole = useCallback(
+    async (nextRole: SelfServeRole) => {
+      if (!user || !profile) {
+        throw new Error('Sign in before changing role.')
+      }
+      if (!profile.onboardingComplete) {
+        throw new Error('Finish onboarding before changing role.')
+      }
+      if (profile.role === 'admin') {
+        throw new Error('Admin role can only be changed by organizers.')
+      }
+      if (!['fan', 'teamManager', 'referee'].includes(nextRole)) {
+        throw new Error('Invalid role.')
+      }
+      if (profile.role === nextRole) return
+
+      const next: UserDoc = {
+        ...profile,
+        role: nextRole,
+        updatedAt: new Date().toISOString(),
+      }
+
+      if (demo) {
+        writeDemoProfile(next)
+        setProfile(next)
+        setUser(makeDemoUser(next))
+        return
+      }
+
+      const ref = doc(db, 'users', user.uid)
+      await updateDoc(ref, {
+        role: nextRole,
+        updatedAt: serverTimestamp(),
+      })
+      setProfile(next)
+    },
+    [user, profile, demo],
+  )
+
   const signOut = useCallback(async () => {
     setAuthError(null)
     if (demo) {
@@ -311,6 +350,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogle,
       signInWithApple,
       completeOnboarding,
+      updateSelfServeRole,
       clearAuthError,
       signOut,
     }),
@@ -325,6 +365,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogle,
       signInWithApple,
       completeOnboarding,
+      updateSelfServeRole,
       clearAuthError,
       signOut,
     ],

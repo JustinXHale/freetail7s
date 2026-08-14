@@ -69,10 +69,15 @@ service cloud.firestore {
                 && request.resource.data.lastName is string
                 && request.resource.data.lastName.size() > 0
                 && request.resource.data.lastName.size() < 80)
-              // After onboarding: profile edits only — role and team stay locked
+              // After onboarding: profile edits; self-serve roles may switch
+              // among fan / teamManager / referee (never to or from admin)
               || (resource.data.onboardingComplete == true
                 && request.resource.data.onboardingComplete == true
-                && request.resource.data.role == resource.data.role)
+                && (
+                  request.resource.data.role == resource.data.role
+                  || (isSelfServeRole(resource.data.role)
+                      && isSelfServeRole(request.resource.data.role))
+                ))
             ));
       allow delete: if isOwner();
     }

@@ -512,3 +512,24 @@ export function homePathForRole(role: UserRole): string {
       return '/'
   }
 }
+
+/**
+ * Resolve a post-auth `?next=` redirect safely.
+ * Rejects open redirects and paths the role cannot access (avoids admin↔login loops).
+ */
+export function safeNextPath(
+  next: string | null | undefined,
+  role: UserRole,
+): string {
+  const fallback = homePathForRole(role)
+  if (!next || !next.startsWith('/') || next.startsWith('//')) {
+    return fallback
+  }
+  if (next === '/admin' || next.startsWith('/admin/')) {
+    return isAdmin(role) ? next : fallback
+  }
+  if (next === '/team-portal' || next.startsWith('/team-portal/')) {
+    return isTeamManager(role) || isAdmin(role) ? next : fallback
+  }
+  return next
+}

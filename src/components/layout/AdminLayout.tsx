@@ -32,10 +32,16 @@ export function AdminLayout() {
     import.meta.env.VITE_USE_DEMO === 'true'
 
   if (!demoBypass && user && needsOnboarding) {
-    return <Navigate to="/onboarding?next=/admin" replace />
+    return <Navigate to="/onboarding" replace />
   }
 
-  if (!demoBypass && (!user || !isAdmin(role))) {
+  // Signed-in non-admins must not keep next=/admin (causes a redirect loop /
+  // blank dark screen). Send them home instead.
+  if (!demoBypass && user && !isAdmin(role)) {
+    return <Navigate to="/" replace />
+  }
+
+  if (!demoBypass && !user) {
     return <Navigate to="/login?next=/admin" replace />
   }
 
