@@ -5,6 +5,7 @@ import {
   query,
   updateDoc,
   doc,
+  type DocumentData,
   type Unsubscribe,
 } from 'firebase/firestore'
 import { cols, EVENT_ID } from './collections'
@@ -16,10 +17,8 @@ import type {
 } from '../types/models'
 
 /** Firestore rejects `undefined` field values. */
-export function stripUndefined<T extends Record<string, unknown>>(
-  data: T,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
+export function stripUndefined(data: object): DocumentData {
+  const out: DocumentData = {}
   for (const [key, value] of Object.entries(data)) {
     if (value === undefined) continue
     out[key] = value
@@ -42,7 +41,7 @@ function asIso(value: unknown): string {
 
 export function mapApplicationDoc(
   id: string,
-  data: Record<string, unknown>,
+  data: DocumentData,
 ): ApplicationDoc {
   return {
     ...(data as Omit<ApplicationDoc, 'id' | 'createdAt' | 'updatedAt'>),
@@ -54,7 +53,7 @@ export function mapApplicationDoc(
 
 export function mapRefereeApplicationDoc(
   id: string,
-  data: Record<string, unknown>,
+  data: DocumentData,
 ): RefereeApplicationDoc {
   return {
     ...(data as Omit<RefereeApplicationDoc, 'id' | 'createdAt' | 'updatedAt'>),
@@ -83,7 +82,7 @@ export async function createTeamApplications(
       createdAt: now,
       updatedAt: now,
     })
-    const ref = await addDoc(cols.applications, payload as ApplicationDoc)
+    const ref = await addDoc(cols.applications, payload)
     ids.push(ref.id)
   }
   return ids
@@ -106,10 +105,7 @@ export async function createRefereeApplication(
     createdAt: now,
     updatedAt: now,
   })
-  const ref = await addDoc(
-    cols.refereeApplications,
-    payload as RefereeApplicationDoc,
-  )
+  const ref = await addDoc(cols.refereeApplications, payload)
   return ref.id
 }
 
@@ -121,11 +117,7 @@ export function subscribeTeamApplications(
   return onSnapshot(
     q,
     (snap) => {
-      onData(
-        snap.docs.map((d) =>
-          mapApplicationDoc(d.id, d.data() as Record<string, unknown>),
-        ),
-      )
+      onData(snap.docs.map((d) => mapApplicationDoc(d.id, d.data())))
     },
     (err) => onError?.(err),
   )
@@ -139,11 +131,7 @@ export function subscribeRefereeApplications(
   return onSnapshot(
     q,
     (snap) => {
-      onData(
-        snap.docs.map((d) =>
-          mapRefereeApplicationDoc(d.id, d.data() as Record<string, unknown>),
-        ),
-      )
+      onData(snap.docs.map((d) => mapRefereeApplicationDoc(d.id, d.data())))
     },
     (err) => onError?.(err),
   )
