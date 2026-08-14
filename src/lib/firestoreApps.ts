@@ -4,6 +4,7 @@ import {
   orderBy,
   query,
   updateDoc,
+  where,
   doc,
   type DocumentData,
   type Unsubscribe,
@@ -113,7 +114,11 @@ export function subscribeTeamApplications(
   onData: (docs: ApplicationDoc[]) => void,
   onError?: (err: Error) => void,
 ): Unsubscribe {
-  const q = query(cols.applications, orderBy('createdAt', 'desc'))
+  const q = query(
+    cols.applications,
+    where('eventId', '==', EVENT_ID),
+    orderBy('createdAt', 'desc'),
+  )
   return onSnapshot(
     q,
     (snap) => {
@@ -127,7 +132,11 @@ export function subscribeRefereeApplications(
   onData: (docs: RefereeApplicationDoc[]) => void,
   onError?: (err: Error) => void,
 ): Unsubscribe {
-  const q = query(cols.refereeApplications, orderBy('createdAt', 'desc'))
+  const q = query(
+    cols.refereeApplications,
+    where('eventId', '==', EVENT_ID),
+    orderBy('createdAt', 'desc'),
+  )
   return onSnapshot(
     q,
     (snap) => {

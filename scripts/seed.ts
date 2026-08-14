@@ -39,6 +39,7 @@ async function main() {
       titleSponsor: 'Legacy EcoWear',
       entryFee: 650,
       paymentDeadline: '2026-11-20',
+      applicationDeadline: '2026-10-01',
       applicationOpen: true,
       mvpVotingOpen: false,
       mvpMode: 'per-division',

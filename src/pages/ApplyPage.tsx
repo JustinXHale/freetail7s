@@ -13,7 +13,7 @@ import {
   useSubmitApplication,
   useSubmitRefereeApplication,
 } from '../hooks/useTournament'
-import { EVENT_DATES } from '../data/eventCopy'
+import { formatEventDeadline } from '../lib/firestoreEvent'
 import {
   ACCEPTANCE_PAYMENT_SUMMARY,
   DIVISION_VIABILITY_SUMMARY,
@@ -45,6 +45,12 @@ export function ApplyPage() {
   const event = useEvent()
   const divisions = useDivisions()
   const { user, needsOnboarding } = useAuth()
+  const applicationDeadline = formatEventDeadline(
+    event.applicationDeadline || '2026-10-01',
+  )
+  const paymentDeadline = formatEventDeadline(
+    event.paymentDeadline || '2026-11-20',
+  )
 
   if (!event.applicationOpen) {
     return (
@@ -93,7 +99,7 @@ export function ApplyPage() {
             <ul>
               <li>
                 Application deadline:{' '}
-                <strong>{EVENT_DATES.applicationDeadline}</strong>
+                <strong>{applicationDeadline}</strong>
               </li>
               <li>
                 Eight teams per division · invitation after review
@@ -145,7 +151,7 @@ export function ApplyPage() {
             <ul>
               <li>
                 Application deadline:{' '}
-                <strong>{EVENT_DATES.applicationDeadline}</strong>
+                <strong>{applicationDeadline}</strong>
               </li>
               <li>
                 Role(s) to apply for
@@ -193,7 +199,7 @@ export function ApplyPage() {
           <li>
             <strong>If invited,</strong> you&apos;ll get payment instructions by
             email. Fees are due in full by{' '}
-            <strong>{EVENT_DATES.paymentDeadline}</strong>.{' '}
+            <strong>{paymentDeadline}</strong>.{' '}
             {ACCEPTANCE_PAYMENT_SUMMARY}
           </li>
           <li>
@@ -334,6 +340,7 @@ function emptyTeamSlot(open: boolean, teamName = ''): TeamSlot {
 }
 
 function TeamApplyForm() {
+  const event = useEvent()
   const divisions = useDivisions()
   const submit = useSubmitApplication()
   const navigate = useNavigate()
@@ -344,6 +351,12 @@ function TeamApplyForm() {
   const [organizationName, setOrganizationName] = useState('')
   const [defaultTeamName, setDefaultTeamName] = useState('')
   const [teams, setTeams] = useState<TeamSlot[]>(() => [emptyTeamSlot(true)])
+  const applicationDeadline = formatEventDeadline(
+    event.applicationDeadline || '2026-10-01',
+  )
+  const paymentDeadline = formatEventDeadline(
+    event.paymentDeadline || '2026-11-20',
+  )
 
   const defaultContactName =
     [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || ''
@@ -459,8 +472,8 @@ function TeamApplyForm() {
       <h1>Team application</h1>
       <p>
         Applying is free. If invited, the entry fee is due by{' '}
-        {EVENT_DATES.paymentDeadline}. Deadline to apply:{' '}
-        {EVENT_DATES.applicationDeadline} (rolling review). Fee, refund, and
+        {paymentDeadline}. Deadline to apply:{' '}
+        {applicationDeadline} (rolling review). Fee, refund, and
         prize details are on the <Link to="/apply">Apply</Link> page; on-field
         eligibility is in the <Link to={RULES_PATH}>Tournament rules</Link>.
       </p>
@@ -787,6 +800,7 @@ function TeamApplyForm() {
 }
 
 function RefereeApplyForm() {
+  const event = useEvent()
   const divisions = useDivisions()
   const submit = useSubmitRefereeApplication()
   const navigate = useNavigate()
@@ -795,6 +809,9 @@ function RefereeApplyForm() {
   const [pending, setPending] = useState(false)
   const [competition, setCompetition] =
     useState<SevensCompetitionLevel>('localClub')
+  const applicationDeadline = formatEventDeadline(
+    event.applicationDeadline || '2026-10-01',
+  )
 
   const defaultEmail = profile?.email ?? user?.email ?? ''
 
@@ -878,7 +895,7 @@ function RefereeApplyForm() {
     <div className="apply-form">
       <h1>Referee application</h1>
       <p>
-        Apply by {EVENT_DATES.applicationDeadline} (rolling acceptance). Dual
+        Apply by {applicationDeadline} (rolling acceptance). Dual
         hotel or Airbnb lodging is provided for accepted officials; flights to
         and from the event are not covered. Assignments are coordinated with
         Project Pōpolo.

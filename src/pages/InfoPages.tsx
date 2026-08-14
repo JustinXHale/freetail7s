@@ -1,9 +1,6 @@
-import { useState } from 'react'
 import { Button } from '../components/ui/Button'
-import { TextInput } from '../components/ui/Field'
 import {
   useAnnouncements,
-  useEmailSignup,
   useEvent,
   useFaqs,
 } from '../hooks/useTournament'
@@ -311,34 +308,6 @@ export function UpdatesPage() {
         </article>
       ))}
     </div>
-  )
-}
-
-export function EmailSignupInline() {
-  const signup = useEmailSignup()
-  const [email, setEmail] = useState('')
-  const [done, setDone] = useState(false)
-  return (
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault()
-        await signup(email)
-        setDone(true)
-        setEmail('')
-      }}
-      style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
-    >
-      <TextInput
-        type="email"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email for tournament updates"
-        aria-label="Email for tournament updates"
-      />
-      <Button type="submit">Sign up</Button>
-      {done ? <span role="status">You’re on the list.</span> : null}
-    </form>
   )
 }
 

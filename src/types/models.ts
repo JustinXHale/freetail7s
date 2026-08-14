@@ -71,6 +71,8 @@ export interface EventDoc {
   titleSponsor: string
   entryFee: number
   paymentDeadline: string
+  /** ISO date (YYYY-MM-DD) when applications are due */
+  applicationDeadline: string
   applicationOpen: boolean
   mvpVotingOpen: boolean
   mvpMode: 'overall' | 'per-division'

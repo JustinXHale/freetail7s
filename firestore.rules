@@ -43,6 +43,11 @@ service cloud.firestore {
       return value in ['fan', 'teamManager', 'referee'];
     }
 
+    function applicationsOpen(eventId) {
+      return get(/databases/$(database)/documents/events/$(eventId)).data.applicationOpen
+        == true;
+    }
+
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isStaff());
       // New accounts start as fan with onboarding incomplete. Admin is never self-assigned.
@@ -120,6 +125,7 @@ service cloud.firestore {
         && request.resource.data.teamName is string
         && request.resource.data.teamName.size() > 0
         && request.resource.data.teamName.size() < 120
+        && applicationsOpen(request.resource.data.eventId)
         && (!('honeypot' in request.resource.data)
             || request.resource.data.honeypot == '');
       allow update, delete: if isAdmin();
@@ -148,6 +154,7 @@ service cloud.firestore {
         && request.resource.data.positions.size() > 0
         && request.resource.data.divisionCodes is list
         && request.resource.data.divisionCodes.size() > 0
+        && applicationsOpen(request.resource.data.eventId)
         && (!('honeypot' in request.resource.data)
             || request.resource.data.honeypot == '');
       allow update, delete: if isAdmin();

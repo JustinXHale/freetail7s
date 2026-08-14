@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Field, TextInput, TextSelect } from '../../components/ui/Field'
@@ -10,6 +10,7 @@ import {
   useEvent,
   useRefereeApplications,
   useTeamName,
+  useUpdateEventSettings,
 } from '../../hooks/useTournament'
 import type {
   ApplicationStatus,
@@ -23,6 +24,7 @@ import {
   SEVENS_OFFICIATING_SCOPE_LABELS,
 } from '../../types/models'
 import { EVENT_ID } from '../../lib/collections'
+import { formatEventDeadline, isEventPhase } from '../../lib/firestoreEvent'
 
 export function AdminDashboard() {
   const { applications, loading: appsLoading, error: appsError } =
@@ -32,7 +34,6 @@ export function AdminDashboard() {
     loading: refLoading,
     error: refError,
   } = useRefereeApplications()
-  const { state } = useDemo()
   const byStatus = (s: ApplicationStatus) =>
     applications.filter((a) => a.status === s).length
 
@@ -58,23 +59,24 @@ export function AdminDashboard() {
           Referee apps
         </div>
         <div className="admin-card">
-          <strong className="tabular">{byStatus('accepted')}</strong>
+          <strong className="tabular">
+            {appsLoading ? '…' : byStatus('accepted')}
+          </strong>
           Teams accepted
         </div>
         <div className="admin-card">
-          <strong className="tabular">{state.teams.length}</strong>
-          Teams
-        </div>
-        <div className="admin-card">
-          <strong className="tabular">{state.matches.length}</strong>
-          Matches
-        </div>
-        <div className="admin-card">
-          <strong className="tabular">{state.contactMessages.length}</strong>
-          Contact msgs
+          <strong className="tabular">
+            {appsLoading ? '…' : byStatus('submitted')}
+          </strong>
+          Awaiting review
         </div>
       </div>
-      <p>Use the sidebar to manage applications, schedule, scores, and content.</p>
+      <p>
+        Application counts are live from Firestore.{' '}
+        <Link to="/admin/applications">Review applications</Link>. Schedule,
+        teams CMS, and content tools are still demo-only until those features
+        ship.
+      </p>
     </div>
   )
 }
@@ -1160,19 +1162,73 @@ export function AdminUsersPage() {
 
 export function AdminSettingsPage() {
   const event = useEvent()
-  const { setState } = useDemo()
+  const updateSettings = useUpdateEventSettings()
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [banner, setBanner] = useState(event.emergencyBanner ?? '')
+  const [appDeadline, setAppDeadline] = useState(
+    event.applicationDeadline ?? '2026-10-01',
+  )
+  const [payDeadline, setPayDeadline] = useState(
+    event.paymentDeadline || '2026-11-20',
+  )
+
+  useEffect(() => {
+    setBanner(event.emergencyBanner ?? '')
+    setAppDeadline(event.applicationDeadline ?? '2026-10-01')
+    setPayDeadline(event.paymentDeadline || '2026-11-20')
+  }, [
+    event.emergencyBanner,
+    event.applicationDeadline,
+    event.paymentDeadline,
+  ])
+
+  async function applyPatch(
+    patch: Parameters<typeof updateSettings>[0],
+  ) {
+    setError(null)
+    setSaved(false)
+    setPending(true)
+    try {
+      await updateSettings(patch)
+      setSaved(true)
+    } catch (err) {
+      console.error(err)
+      setError(
+        err instanceof Error ? err.message : 'Could not save settings.',
+      )
+    } finally {
+      setPending(false)
+    }
+  }
+
   return (
     <div>
       <h1>Settings</h1>
+      <p style={{ marginBottom: 16, color: 'var(--color-text-secondary)' }}>
+        These controls write to Firestore and affect the live apply flow.
+        Display deadlines:{' '}
+        <strong>{formatEventDeadline(appDeadline)}</strong> (apply) ·{' '}
+        <strong>{formatEventDeadline(payDeadline)}</strong> (payment).
+      </p>
+      {error ? (
+        <p role="alert" style={{ color: 'var(--color-danger, #c62828)' }}>
+          {error}
+        </p>
+      ) : null}
+      {saved && !error ? (
+        <p role="status" style={{ marginBottom: 12 }}>
+          Saved.
+        </p>
+      ) : null}
       <label style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <input
           type="checkbox"
           checked={event.applicationOpen}
+          disabled={pending}
           onChange={(e) =>
-            setState((prev) => ({
-              ...prev,
-              event: { ...prev.event, applicationOpen: e.target.checked },
-            }))
+            void applyPatch({ applicationOpen: e.target.checked })
           }
         />
         Applications open
@@ -1180,31 +1236,52 @@ export function AdminSettingsPage() {
       <Field label="Emergency banner" htmlFor="banner">
         <TextInput
           id="banner"
-          value={event.emergencyBanner ?? ''}
-          onChange={(e) =>
-            setState((prev) => ({
-              ...prev,
-              event: {
-                ...prev.event,
-                emergencyBanner: e.target.value || null,
-              },
-            }))
-          }
+          value={banner}
+          disabled={pending}
+          onChange={(e) => setBanner(e.target.value)}
+          onBlur={() => {
+            const next = banner.trim() || null
+            if (next === (event.emergencyBanner ?? null)) return
+            void applyPatch({ emergencyBanner: next })
+          }}
+        />
+      </Field>
+      <Field label="Application deadline (YYYY-MM-DD)" htmlFor="appDeadline">
+        <TextInput
+          id="appDeadline"
+          value={appDeadline}
+          disabled={pending}
+          onChange={(e) => setAppDeadline(e.target.value)}
+          onBlur={() => {
+            const value = appDeadline.trim()
+            if (!value || value === event.applicationDeadline) return
+            void applyPatch({ applicationDeadline: value })
+          }}
+        />
+      </Field>
+      <Field label="Payment deadline (YYYY-MM-DD)" htmlFor="payDeadline">
+        <TextInput
+          id="payDeadline"
+          value={payDeadline}
+          disabled={pending}
+          onChange={(e) => setPayDeadline(e.target.value)}
+          onBlur={() => {
+            const value = payDeadline.trim()
+            if (!value || value === event.paymentDeadline) return
+            void applyPatch({ paymentDeadline: value })
+          }}
         />
       </Field>
       <Field label="Event phase" htmlFor="phase">
         <TextSelect
           id="phase"
           value={event.phase}
-          onChange={(e) =>
-            setState((prev) => ({
-              ...prev,
-              event: {
-                ...prev.event,
-                phase: e.target.value as typeof event.phase,
-              },
-            }))
-          }
+          disabled={pending}
+          onChange={(e) => {
+            const value = e.target.value
+            if (!isEventPhase(value)) return
+            void applyPatch({ phase: value })
+          }}
         >
           <option value="promo">promo</option>
           <option value="prep">prep</option>

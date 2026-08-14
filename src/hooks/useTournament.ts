@@ -4,8 +4,9 @@ import { useAuth } from '../context/auth-context'
 import type {
   ApplicationDoc,
   ApplicationStatus,
-  ContactMessageDoc,
   DivisionCode,
+  DivisionDoc,
+  EventDoc,
   MatchDoc,
   MvpNomineeDoc,
   RefereeApplicationDoc,
@@ -19,15 +20,66 @@ import {
   updateApplicationStatus,
   updateRefereeApplicationStatus,
 } from '../lib/firestoreApps'
+import {
+  subscribeDivisions,
+  subscribeEvent,
+  updateEventSettings,
+  type EventSettingsPatch,
+} from '../lib/firestoreEvent'
 
 export function useEvent() {
-  const { state } = useDemo()
-  return state.event
+  const { state, usingDemo } = useDemo()
+  const [remote, setRemote] = useState<EventDoc | null>(null)
+
+  useEffect(() => {
+    if (usingDemo) {
+      setRemote(null)
+      return
+    }
+    return subscribeEvent(
+      (doc) => setRemote(doc),
+      (err) => console.error(err),
+    )
+  }, [usingDemo])
+
+  return usingDemo ? state.event : (remote ?? state.event)
 }
 
 export function useDivisions() {
-  const { state } = useDemo()
-  return state.divisions
+  const { state, usingDemo } = useDemo()
+  const [remote, setRemote] = useState<DivisionDoc[] | null>(null)
+
+  useEffect(() => {
+    if (usingDemo) {
+      setRemote(null)
+      return
+    }
+    return subscribeDivisions(
+      (docs) => setRemote(docs),
+      (err) => console.error(err),
+    )
+  }, [usingDemo])
+
+  if (usingDemo || remote === null) return state.divisions
+  return remote
+}
+
+export function useUpdateEventSettings() {
+  const { setState, usingDemo } = useDemo()
+  return async (patch: EventSettingsPatch) => {
+    if (usingDemo) {
+      setState((prev) => ({
+        ...prev,
+        event: {
+          ...prev.event,
+          ...patch,
+          updatedAt: new Date().toISOString(),
+        },
+      }))
+      return
+    }
+    await updateEventSettings(patch)
+  }
 }
 
 export function useTeams(divisionCode?: DivisionCode) {
@@ -288,47 +340,6 @@ export function useSubmitRefereeApplication() {
       refereeApplications: [doc, ...prev.refereeApplications],
     }))
     return { ok: true as const, id: doc.id }
-  }
-}
-
-export function useSubmitContact() {
-  const { setState } = useDemo()
-  return async (
-    input: Omit<ContactMessageDoc, 'id' | 'createdAt'> & { honeypot?: string },
-  ) => {
-    if (input.honeypot) return { ok: true as const }
-    const doc: ContactMessageDoc = {
-      id: `contact-${crypto.randomUUID()}`,
-      name: input.name,
-      email: input.email,
-      subject: input.subject,
-      message: input.message,
-      createdAt: new Date().toISOString(),
-    }
-    setState((prev) => ({
-      ...prev,
-      contactMessages: [doc, ...prev.contactMessages],
-    }))
-    return { ok: true as const }
-  }
-}
-
-export function useEmailSignup() {
-  const { setState } = useDemo()
-  return async (email: string) => {
-    setState((prev) => ({
-      ...prev,
-      emailSignups: [
-        {
-          id: `email-${crypto.randomUUID()}`,
-          email,
-          createdAt: new Date().toISOString(),
-          source: 'homepage',
-        },
-        ...prev.emailSignups,
-      ],
-    }))
-    return { ok: true as const }
   }
 }
 
