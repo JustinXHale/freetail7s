@@ -1,5 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import {
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { AdminApplicationDetail } from '../../components/admin/AdminApplicationDetail'
 import { Button } from '../../components/ui/Button'
 import { Field, TextInput, TextSelect } from '../../components/ui/Field'
 import { useDemo } from '../../context/useDemo'
@@ -15,12 +21,14 @@ import {
   useUpdateEventSettings,
 } from '../../hooks/useTournament'
 import type {
+  ApplicationDoc,
   ApplicationStatus,
   DivisionCode,
   MatchDoc,
   MatchStatus,
   MvpNomineeDoc,
   PaymentStatus,
+  RefereeApplicationDoc,
 } from '../../types/models'
 import {
   REFEREE_POSITION_LABELS,
@@ -29,6 +37,42 @@ import {
 } from '../../types/models'
 import { EVENT_ID } from '../../lib/collections'
 import { formatEventDeadline, isEventPhase } from '../../lib/firestoreEvent'
+
+function AdminHubTabs({
+  tabs,
+  param = 'tab',
+}: {
+  tabs: { id: string; label: string; content: ReactNode }[]
+  param?: string
+}) {
+  const [params, setParams] = useSearchParams()
+  const active =
+    tabs.find((t) => t.id === params.get(param))?.id ?? tabs[0]?.id
+
+  return (
+    <>
+      <div className="admin-tabs" role="tablist">
+        {tabs.map((t) => (
+          <Button
+            key={t.id}
+            size="sm"
+            variant={active === t.id ? 'primary' : 'secondary'}
+            role="tab"
+            aria-selected={active === t.id}
+            onClick={() => {
+              const next = new URLSearchParams(params)
+              next.set(param, t.id)
+              setParams(next, { replace: true })
+            }}
+          >
+            {t.label}
+          </Button>
+        ))}
+      </div>
+      {tabs.find((t) => t.id === active)?.content}
+    </>
+  )
+}
 
 export function AdminDashboard() {
   const { applications, loading: appsLoading, error: appsError } =
@@ -76,10 +120,9 @@ export function AdminDashboard() {
         </div>
       </div>
       <p>
-        Application counts are live from Firestore.{' '}
-        <Link to="/admin/applications">Review applications</Link>. Schedule,
-        teams CMS, and content tools are still demo-only until those features
-        ship.
+        Application and team data are live from Firestore.{' '}
+        <Link to="/admin/applications">Review applications</Link>. Schedule and
+        site CMS tools are still demo-only until those features ship.
       </p>
     </div>
   )
@@ -94,6 +137,9 @@ export function AdminApplicationsPage() {
     error: refError,
   } = useRefereeApplications()
   const [tab, setTab] = useState<'team' | 'referee'>('team')
+  const [selectedTeam, setSelectedTeam] = useState<ApplicationDoc | null>(null)
+  const [selectedReferee, setSelectedReferee] =
+    useState<RefereeApplicationDoc | null>(null)
   const statuses: ApplicationStatus[] = [
     'submitted',
     'reviewing',
@@ -101,6 +147,10 @@ export function AdminApplicationsPage() {
     'waitlisted',
     'declined',
   ]
+
+  const openTeam = applications.find((a) => a.id === selectedTeam?.id) ?? null
+  const openReferee =
+    refereeApplications.find((a) => a.id === selectedReferee?.id) ?? null
 
   function exportTeamCsv() {
     const header = [
@@ -247,6 +297,8 @@ export function AdminApplicationsPage() {
         </Button>
       </div>
 
+      <p className="admin-table__hint">Tap a row to read the full application.</p>
+
       {tab === 'team' ? (
         <>
           <table className="admin-table">
@@ -261,7 +313,18 @@ export function AdminApplicationsPage() {
             </thead>
             <tbody>
               {applications.map((app) => (
-                <tr key={app.id}>
+                <tr
+                  key={app.id}
+                  className="admin-table__row--clickable"
+                  tabIndex={0}
+                  onClick={() => setSelectedTeam(app)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedTeam(app)
+                    }
+                  }}
+                >
                   <td>
                     <strong>{app.teamName}</strong>
                     <div>{app.hometown}</div>
@@ -277,9 +340,10 @@ export function AdminApplicationsPage() {
                     <div>{app.contactEmail}</div>
                     <div>{app.contactPhone}</div>
                   </td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     <select
                       value={app.status}
+                      aria-label={`Status for ${app.teamName}`}
                       onChange={(e) =>
                         updateStatus(app.id, e.target.value as ApplicationStatus)
                       }
@@ -313,7 +377,18 @@ export function AdminApplicationsPage() {
             </thead>
             <tbody>
               {refereeApplications.map((app) => (
-                <tr key={app.id}>
+                <tr
+                  key={app.id}
+                  className="admin-table__row--clickable"
+                  tabIndex={0}
+                  onClick={() => setSelectedReferee(app)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedReferee(app)
+                    }
+                  }}
+                >
                   <td>
                     <strong>
                       {app.firstName} {app.lastName}
@@ -336,9 +411,10 @@ export function AdminApplicationsPage() {
                     </div>
                   </td>
                   <td>{app.refereeSociety}</td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     <select
                       value={app.status}
+                      aria-label={`Status for ${app.firstName} ${app.lastName}`}
                       onChange={(e) =>
                         updateRefereeStatus(
                           app.id,
@@ -363,6 +439,25 @@ export function AdminApplicationsPage() {
           ) : null}
         </>
       )}
+
+      {openTeam ? (
+        <AdminApplicationDetail
+          kind="team"
+          app={openTeam}
+          onClose={() => setSelectedTeam(null)}
+          onStatusChange={(status) => void updateStatus(openTeam.id, status)}
+        />
+      ) : null}
+      {openReferee ? (
+        <AdminApplicationDetail
+          kind="referee"
+          app={openReferee}
+          onClose={() => setSelectedReferee(null)}
+          onStatusChange={(status) =>
+            void updateRefereeStatus(openReferee.id, status)
+          }
+        />
+      ) : null}
     </div>
   )
 }
@@ -698,7 +793,11 @@ export function AdminTeamsPage() {
   )
 }
 
-export function AdminSchedulePage() {
+export function AdminSchedulePage({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   const { matches, upsertMatch } = useAdminMatches()
   const { state } = useDemo()
 
@@ -725,10 +824,12 @@ export function AdminSchedulePage() {
     upsertMatch(match)
   }
 
+  const Title = embedded ? 'h2' : 'h1'
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <h1>Schedule</h1>
+        <Title>Schedule</Title>
         <Button size="sm" onClick={addMatch}>
           Add match slot
         </Button>
@@ -779,7 +880,11 @@ function TeamLabel({ id }: { id: string | null }) {
   return <>{useTeamName(id)}</>
 }
 
-export function AdminResultsPage() {
+export function AdminResultsPage({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   const { matches, upsertMatch } = useAdminMatches()
   const { setState } = useDemo()
 
@@ -874,7 +979,7 @@ export function AdminResultsPage() {
 
   return (
     <div>
-      <h1>Results</h1>
+      {embedded ? <h2>Results</h2> : <h1>Results</h1>}
       <table className="admin-table">
         <thead>
           <tr>
@@ -963,7 +1068,11 @@ function ScoreRow({
   )
 }
 
-export function AdminFanMvpPage() {
+export function AdminFanMvpPage({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   const { nominees, votingOpen, setVotingOpen, upsertNominee, publishWinner } =
     useAdminMvp()
   const [name, setName] = useState('')
@@ -971,7 +1080,7 @@ export function AdminFanMvpPage() {
 
   return (
     <div>
-      <h1>Fan MVP</h1>
+      {embedded ? <h2>Fan MVP</h2> : <h1>Fan MVP</h1>}
       <label style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <input
           type="checkbox"
@@ -1041,14 +1150,18 @@ export function AdminFanMvpPage() {
   )
 }
 
-export function AdminAnnouncementsPage() {
+export function AdminAnnouncementsPage({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   const { state, setState } = useDemo()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
 
   return (
     <div>
-      <h1>Announcements</h1>
+      {embedded ? <h2>Announcements</h2> : <h1>Announcements</h1>}
       <p>
         Published announcements appear on the public{' '}
         <Link to="/updates">Updates</Link> page and as “Latest update” on the
@@ -1109,10 +1222,14 @@ export function AdminAnnouncementsPage() {
   )
 }
 
-export function AdminContentPage() {
+export function AdminContentPage({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   return (
     <div>
-      <h1>Content</h1>
+      {embedded ? <h2>Content</h2> : <h1>Content</h1>}
       <p>
         Manage FAQ, privacy, terms, and homepage copy here. Seeded FAQ content is
         editable in a future CMS iteration; current FAQ lives in demo state.
@@ -1121,11 +1238,15 @@ export function AdminContentPage() {
   )
 }
 
-export function AdminSponsorsPage() {
+export function AdminSponsorsPage({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   const { state } = useDemo()
   return (
     <div>
-      <h1>Sponsors</h1>
+      {embedded ? <h2>Sponsors</h2> : <h1>Sponsors</h1>}
       <ul>
         {state.sponsors.map((s) => (
           <li key={s.id}>
@@ -1137,10 +1258,14 @@ export function AdminSponsorsPage() {
   )
 }
 
-export function AdminOperationsPage() {
+export function AdminOperationsPage({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   return (
     <div>
-      <h1>Operations</h1>
+      {embedded ? <h2>Operations</h2> : <h1>Operations</h1>}
       <p>Staff-only operational notes. Do not store medical records here.</p>
       <ul>
         <li>Venue contacts</li>
@@ -1153,10 +1278,14 @@ export function AdminOperationsPage() {
   )
 }
 
-export function AdminUsersPage() {
+export function AdminUsersPage({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   return (
     <div>
-      <h1>Users</h1>
+      {embedded ? <h2>Users</h2> : <h1>Users</h1>}
       <p>
         Promote users to admin, teamManager, referee, or fan via the{' '}
         <code>setUserRole</code> callable (admin only). Admin cannot be chosen
@@ -1167,7 +1296,11 @@ export function AdminUsersPage() {
   )
 }
 
-export function AdminSettingsPage() {
+export function AdminSettingsPage({
+  embedded = false,
+}: {
+  embedded?: boolean
+} = {}) {
   const event = useEvent()
   const updateSettings = useUpdateEventSettings()
   const [pending, setPending] = useState(false)
@@ -1212,7 +1345,7 @@ export function AdminSettingsPage() {
 
   return (
     <div>
-      <h1>Settings</h1>
+      {embedded ? <h2>Event</h2> : <h1>Settings</h1>}
       <p style={{ marginBottom: 16, color: 'var(--color-text-secondary)' }}>
         These controls write to Firestore and affect the live apply flow.
         Display deadlines:{' '}
@@ -1296,6 +1429,93 @@ export function AdminSettingsPage() {
           <option value="archive">archive</option>
         </TextSelect>
       </Field>
+    </div>
+  )
+}
+
+export function AdminEventDayPage() {
+  return (
+    <div>
+      <h1>Schedule & results</h1>
+      <p className="admin-table__hint">
+        Demo tools for match day. Live schedule wiring comes later.
+      </p>
+      <AdminHubTabs
+        tabs={[
+          {
+            id: 'schedule',
+            label: 'Schedule',
+            content: <AdminSchedulePage embedded />,
+          },
+          {
+            id: 'results',
+            label: 'Results',
+            content: <AdminResultsPage embedded />,
+          },
+          {
+            id: 'fan-mvp',
+            label: 'Fan MVP',
+            content: <AdminFanMvpPage embedded />,
+          },
+        ]}
+      />
+    </div>
+  )
+}
+
+export function AdminSitePage() {
+  return (
+    <div>
+      <h1>Content & sponsors</h1>
+      <p className="admin-table__hint">
+        Site CMS is still demo-backed until content ships live.
+      </p>
+      <AdminHubTabs
+        tabs={[
+          {
+            id: 'announcements',
+            label: 'Announcements',
+            content: <AdminAnnouncementsPage embedded />,
+          },
+          {
+            id: 'content',
+            label: 'Content',
+            content: <AdminContentPage embedded />,
+          },
+          {
+            id: 'sponsors',
+            label: 'Sponsors',
+            content: <AdminSponsorsPage embedded />,
+          },
+        ]}
+      />
+    </div>
+  )
+}
+
+export function AdminSettingsHubPage() {
+  return (
+    <div>
+      <h1>Settings</h1>
+      <AdminHubTabs
+        tabs={[
+          {
+            id: 'event',
+            label: 'Event',
+            content: <AdminSettingsPage embedded />,
+          },
+          {
+            id: 'users',
+            label: 'Users',
+            content: <AdminUsersPage embedded />,
+          },
+          {
+            id: 'operations',
+            label: 'Operations',
+            content: <AdminOperationsPage embedded />,
+          },
+        ]}
+      />
     </div>
   )
 }

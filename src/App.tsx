@@ -30,18 +30,12 @@ import { LoginPage, OnboardingPage } from './pages/LoginPage'
 import { TeamPortalPage } from './pages/team/TeamPortalPage'
 import { RequireAuth } from './components/auth/RequireAuth'
 import {
-  AdminAnnouncementsPage,
   AdminApplicationsPage,
-  AdminContentPage,
   AdminDashboard,
-  AdminFanMvpPage,
-  AdminOperationsPage,
-  AdminResultsPage,
-  AdminSchedulePage,
-  AdminSettingsPage,
-  AdminSponsorsPage,
+  AdminEventDayPage,
+  AdminSettingsHubPage,
+  AdminSitePage,
   AdminTeamsPage,
-  AdminUsersPage,
 } from './pages/admin/AdminPages'
 
 export default function App() {
@@ -120,18 +114,45 @@ export default function App() {
               <Route path="teams" element={<AdminTeamsPage />} />
               <Route path="divisions" element={<Navigate to="/admin/teams" />} />
               <Route path="pools" element={<Navigate to="/pools" />} />
-              <Route path="schedule" element={<AdminSchedulePage />} />
-              <Route path="results" element={<AdminResultsPage />} />
-              <Route path="fan-mvp" element={<AdminFanMvpPage />} />
+              <Route path="event" element={<AdminEventDayPage />} />
+              <Route path="site" element={<AdminSitePage />} />
+              <Route path="settings" element={<AdminSettingsHubPage />} />
+              <Route
+                path="schedule"
+                element={<Navigate to="/admin/event?tab=schedule" replace />}
+              />
+              <Route
+                path="results"
+                element={<Navigate to="/admin/event?tab=results" replace />}
+              />
+              <Route
+                path="fan-mvp"
+                element={<Navigate to="/admin/event?tab=fan-mvp" replace />}
+              />
               <Route
                 path="announcements"
-                element={<AdminAnnouncementsPage />}
+                element={
+                  <Navigate to="/admin/site?tab=announcements" replace />
+                }
               />
-              <Route path="content" element={<AdminContentPage />} />
-              <Route path="sponsors" element={<AdminSponsorsPage />} />
-              <Route path="operations" element={<AdminOperationsPage />} />
-              <Route path="users" element={<AdminUsersPage />} />
-              <Route path="settings" element={<AdminSettingsPage />} />
+              <Route
+                path="content"
+                element={<Navigate to="/admin/site?tab=content" replace />}
+              />
+              <Route
+                path="sponsors"
+                element={<Navigate to="/admin/site?tab=sponsors" replace />}
+              />
+              <Route
+                path="operations"
+                element={
+                  <Navigate to="/admin/settings?tab=operations" replace />
+                }
+              />
+              <Route
+                path="users"
+                element={<Navigate to="/admin/settings?tab=users" replace />}
+              />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

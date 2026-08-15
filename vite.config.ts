@@ -3,6 +3,27 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  resolve: {
+    // firebase-admin can hoist a different @firebase/app than firebase@12.16;
+    // without dedupe, Vite loads two registries → "Component auth has not been registered yet".
+    dedupe: [
+      'firebase',
+      '@firebase/app',
+      '@firebase/auth',
+      '@firebase/firestore',
+      '@firebase/storage',
+      '@firebase/functions',
+    ],
+  },
+  optimizeDeps: {
+    include: [
+      'firebase/app',
+      'firebase/auth',
+      'firebase/firestore',
+      'firebase/storage',
+      'firebase/functions',
+    ],
+  },
   plugins: [
     react(),
     VitePWA({
