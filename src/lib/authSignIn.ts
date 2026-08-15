@@ -113,5 +113,9 @@ export function authErrorMessage(
   ) {
     return 'Apple sign-in is still finishing setup. Try Google, or re-save the Services ID in Apple Developer.'
   }
+  // Firebase JS 12.17.x auth bug when the sign-in popup hides the opener tab.
+  if (/Database is closing\/hidden/i.test(message)) {
+    return 'Sign-in hit a browser glitch. Close extra sign-in tabs, keep this page visible, and try again.'
+  }
   return message
 }

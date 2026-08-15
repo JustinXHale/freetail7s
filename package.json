@@ -15,7 +15,7 @@
     "deploy:rules": "firebase deploy --only firestore:rules,storage"
   },
   "dependencies": {
-    "firebase": "^12.17.0",
+    "firebase": "12.16.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2"
