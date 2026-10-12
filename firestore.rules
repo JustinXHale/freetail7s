@@ -114,6 +114,8 @@ service cloud.firestore {
     match /applications/{id} {
       allow read: if isStaff()
         || (signedIn() && resource.data.submittedByUid == request.auth.uid);
+      // Public applicants need applicationsOpen. Admins may enter Google Form /
+      // offline submissions anytime (submittedByUid = admin uid).
       allow create: if signedIn()
         && request.resource.data.keys().hasAll([
           'eventId', 'organizationName', 'teamName', 'divisionCode',
@@ -125,7 +127,7 @@ service cloud.firestore {
         && request.resource.data.teamName is string
         && request.resource.data.teamName.size() > 0
         && request.resource.data.teamName.size() < 120
-        && applicationsOpen(request.resource.data.eventId)
+        && (isAdmin() || applicationsOpen(request.resource.data.eventId))
         && (!('honeypot' in request.resource.data)
             || request.resource.data.honeypot == '');
       allow update, delete: if isAdmin();

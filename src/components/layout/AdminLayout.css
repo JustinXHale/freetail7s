@@ -377,6 +377,24 @@
   justify-content: flex-end;
 }
 
+.admin-add-app {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-add-app__grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.admin-add-app__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
 @media (min-width: 801px) {
   .admin-shell {
     grid-template-columns: 240px 1fr;
@@ -424,5 +442,9 @@
   .admin-detail__row {
     border-bottom: 0;
     padding-bottom: 0;
+  }
+
+  .admin-add-app__grid {
+    grid-template-columns: 1fr 1fr;
   }
 }

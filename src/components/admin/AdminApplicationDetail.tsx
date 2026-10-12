@@ -161,6 +161,11 @@ export function AdminApplicationDetail(props: TeamProps | RefereeProps) {
               <DetailRow label="Legacy kit interest">
                 {props.app.legacyKitInterest ? 'Yes' : 'No'}
               </DetailRow>
+              <DetailRow label="Entry source">
+                {props.app.entrySource === 'admin'
+                  ? 'Manual (admin)'
+                  : 'Website'}
+              </DetailRow>
               <DetailRow label="Notes">{props.app.notes}</DetailRow>
               <DetailRow label="Batch ID">{props.app.batchId}</DetailRow>
               <DetailRow label="Submitted by">{props.app.submittedByUid}</DetailRow>

@@ -5,6 +5,7 @@ import {
   type ReactNode,
 } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { AdminAddTeamApplication } from '../../components/admin/AdminAddTeamApplication'
 import { AdminApplicationDetail } from '../../components/admin/AdminApplicationDetail'
 import { Button } from '../../components/ui/Button'
 import { Field, TextInput, TextSelect } from '../../components/ui/Field'
@@ -129,7 +130,8 @@ export function AdminDashboard() {
 }
 
 export function AdminApplicationsPage() {
-  const { applications, updateStatus, loading, error } = useApplications()
+  const { applications, updateStatus, addApplication, loading, error } =
+    useApplications()
   const {
     refereeApplications,
     updateStatus: updateRefereeStatus,
@@ -140,6 +142,7 @@ export function AdminApplicationsPage() {
   const [selectedTeam, setSelectedTeam] = useState<ApplicationDoc | null>(null)
   const [selectedReferee, setSelectedReferee] =
     useState<RefereeApplicationDoc | null>(null)
+  const [addingTeam, setAddingTeam] = useState(false)
   const statuses: ApplicationStatus[] = [
     'submitted',
     'reviewing',
@@ -262,15 +265,22 @@ export function AdminApplicationsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <h1>Applications</h1>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={tab === 'team' ? exportTeamCsv : exportRefereeCsv}
-        >
-          Export CSV
-        </Button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {tab === 'team' ? (
+            <Button size="sm" onClick={() => setAddingTeam(true)}>
+              Add team application
+            </Button>
+          ) : null}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={tab === 'team' ? exportTeamCsv : exportRefereeCsv}
+          >
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       {error || refError ? (
@@ -328,6 +338,11 @@ export function AdminApplicationsPage() {
                   <td>
                     <strong>{app.teamName}</strong>
                     <div>{app.hometown}</div>
+                    {app.entrySource === 'admin' ? (
+                      <div style={{ fontSize: '0.8rem', opacity: 0.75 }}>
+                        Manual entry
+                      </div>
+                    ) : null}
                     {app.batchId ? (
                       <div style={{ fontSize: '0.8rem', opacity: 0.75 }}>
                         Multi-team batch
@@ -456,6 +471,14 @@ export function AdminApplicationsPage() {
           onStatusChange={(status) =>
             void updateRefereeStatus(openReferee.id, status)
           }
+        />
+      ) : null}
+      {addingTeam ? (
+        <AdminAddTeamApplication
+          onClose={() => setAddingTeam(false)}
+          onSave={async (input) => {
+            await addApplication(input)
+          }}
         />
       ) : null}
     </div>

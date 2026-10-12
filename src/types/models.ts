@@ -160,8 +160,10 @@ export interface ApplicationDoc {
   /** Links multi-team submissions from one form session */
   batchId?: string
   status: ApplicationStatus
-  /** Firebase uid of the signed-in applicant */
+  /** Firebase uid of the signed-in applicant (or admin who entered it) */
   submittedByUid?: string
+  /** How the application entered the system */
+  entrySource?: 'web' | 'admin'
   honeypot?: string
   createdAt: string
   updatedAt: string

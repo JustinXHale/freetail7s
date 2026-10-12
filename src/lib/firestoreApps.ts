@@ -70,8 +70,10 @@ export async function createTeamApplications(
     'id' | 'createdAt' | 'updatedAt' | 'status' | 'eventId' | 'submittedByUid'
   >[],
   uid: string,
+  options?: { entrySource?: 'web' | 'admin' },
 ): Promise<string[]> {
   const now = new Date().toISOString()
+  const entrySource = options?.entrySource ?? 'web'
   const ids: string[] = []
   for (const input of inputs) {
     const { honeypot: _hp, ...rest } = input
@@ -80,6 +82,7 @@ export async function createTeamApplications(
       eventId: EVENT_ID,
       status: 'submitted' as const,
       submittedByUid: uid,
+      entrySource,
       createdAt: now,
       updatedAt: now,
     })

@@ -289,6 +289,7 @@ export function useMvpNominees() {
 
 export function useApplications() {
   const { state, setState, usingDemo } = useDemo()
+  const { user } = useAuth()
   const [remote, setRemote] = useState<ApplicationDoc[]>([])
   const [loading, setLoading] = useState(!usingDemo)
   const [error, setError] = useState<string | null>(null)
@@ -322,6 +323,42 @@ export function useApplications() {
     applications: usingDemo ? state.applications : remote,
     loading,
     error,
+    addApplication: async (
+      input: Omit<
+        ApplicationDoc,
+        | 'id'
+        | 'createdAt'
+        | 'updatedAt'
+        | 'status'
+        | 'eventId'
+        | 'submittedByUid'
+        | 'entrySource'
+      >,
+    ) => {
+      if (!user?.uid) throw new Error('Sign in required.')
+      if (usingDemo) {
+        const now = new Date().toISOString()
+        const doc: ApplicationDoc = {
+          ...input,
+          id: `app-${crypto.randomUUID()}`,
+          eventId: EVENT_ID,
+          status: 'submitted',
+          submittedByUid: user.uid,
+          entrySource: 'admin',
+          createdAt: now,
+          updatedAt: now,
+        }
+        setState((prev) => ({
+          ...prev,
+          applications: [doc, ...prev.applications],
+        }))
+        return doc.id
+      }
+      const [id] = await createTeamApplications([input], user.uid, {
+        entrySource: 'admin',
+      })
+      return id
+    },
     updateStatus: async (id: string, status: ApplicationStatus) => {
       if (usingDemo) {
         setState((prev) => ({
