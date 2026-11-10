@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useState,
   type FormEvent,
   type ReactNode,
@@ -38,6 +39,22 @@ import {
 } from '../../types/models'
 import { EVENT_ID } from '../../lib/collections'
 import { formatEventDeadline, isEventPhase } from '../../lib/firestoreEvent'
+
+const APPLICATION_STATUSES: ApplicationStatus[] = [
+  'submitted',
+  'reviewing',
+  'accepted',
+  'waitlisted',
+  'declined',
+]
+
+const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
+  submitted: 'Submitted',
+  reviewing: 'Reviewing',
+  accepted: 'Accepted',
+  waitlisted: 'Waitlisted',
+  declined: 'Declined',
+}
 
 function AdminHubTabs({
   tabs,
@@ -132,28 +149,134 @@ export function AdminDashboard() {
 export function AdminApplicationsPage() {
   const { applications, updateStatus, addApplication, loading, error } =
     useApplications()
+  const { teams: tournamentTeams } = useAdminTeams()
   const {
     refereeApplications,
     updateStatus: updateRefereeStatus,
     loading: refLoading,
     error: refError,
   } = useRefereeApplications()
+  const divisions = useDivisions()
   const [tab, setTab] = useState<'team' | 'referee'>('team')
   const [selectedTeam, setSelectedTeam] = useState<ApplicationDoc | null>(null)
   const [selectedReferee, setSelectedReferee] =
     useState<RefereeApplicationDoc | null>(null)
   const [addingTeam, setAddingTeam] = useState(false)
-  const statuses: ApplicationStatus[] = [
-    'submitted',
-    'reviewing',
-    'accepted',
-    'waitlisted',
-    'declined',
-  ]
+  const [teamQuery, setTeamQuery] = useState('')
+  const [teamStatus, setTeamStatus] = useState<ApplicationStatus | 'all'>('all')
+  const [teamDivision, setTeamDivision] = useState<DivisionCode | 'all'>('all')
+  const [refereeQuery, setRefereeQuery] = useState('')
+  const [refereeStatus, setRefereeStatus] =
+    useState<ApplicationStatus | 'all'>('all')
+  const [refereeDivision, setRefereeDivision] =
+    useState<DivisionCode | 'all'>('all')
+  const [statusNotice, setStatusNotice] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [syncingAccepted, setSyncingAccepted] = useState(false)
 
   const openTeam = applications.find((a) => a.id === selectedTeam?.id) ?? null
   const openReferee =
     refereeApplications.find((a) => a.id === selectedReferee?.id) ?? null
+
+  const visibleTeamApplications = useMemo(() => {
+    const query = teamQuery.trim().toLowerCase()
+    return applications.filter((app) => {
+      const matchesQuery =
+        !query ||
+        [
+          app.teamName,
+          app.organizationName,
+          app.contactName,
+          app.contactEmail,
+          app.hometown,
+        ].some((value) => value.toLowerCase().includes(query))
+      return (
+        matchesQuery &&
+        (teamStatus === 'all' || app.status === teamStatus) &&
+        (teamDivision === 'all' || app.divisionCode === teamDivision)
+      )
+    })
+  }, [applications, teamDivision, teamQuery, teamStatus])
+
+  const visibleRefereeApplications = useMemo(() => {
+    const query = refereeQuery.trim().toLowerCase()
+    return refereeApplications.filter((app) => {
+      const matchesQuery =
+        !query ||
+        [app.firstName, app.lastName, app.email, app.refereeSociety].some(
+          (value) => value.toLowerCase().includes(query),
+        )
+      return (
+        matchesQuery &&
+        (refereeStatus === 'all' || app.status === refereeStatus) &&
+        (refereeDivision === 'all' ||
+          app.divisionCodes.includes(refereeDivision))
+      )
+    })
+  }, [refereeApplications, refereeDivision, refereeQuery, refereeStatus])
+
+  const awaitingReview = applications.filter(
+    (app) => app.status === 'submitted' || app.status === 'reviewing',
+  ).length
+  const accepted = applications.filter(
+    (app) => app.status === 'accepted',
+  ).length
+  const acceptedWithoutTeam = applications.filter(
+    (app) =>
+      app.status === 'accepted' &&
+      !tournamentTeams.some(
+        (team) =>
+          team.applicationId === app.id ||
+          (team.divisionCode === app.divisionCode &&
+            team.name.trim().toLowerCase() === app.teamName.trim().toLowerCase()),
+      ),
+  )
+
+  async function changeTeamStatus(
+    app: ApplicationDoc,
+    status: ApplicationStatus,
+  ) {
+    setActionError(null)
+    setStatusNotice(null)
+    try {
+      const existingTeam = tournamentTeams.find(
+        (team) =>
+          team.applicationId === app.id ||
+          (team.divisionCode === app.divisionCode &&
+            team.name.trim().toLowerCase() === app.teamName.trim().toLowerCase()),
+      )
+      await updateStatus(app.id, status, existingTeam?.id)
+      setStatusNotice(
+        status === 'accepted'
+          ? `${app.teamName} was accepted and added to Tournament teams as an unpublished, unpaid team.`
+          : `${app.teamName} is now ${APPLICATION_STATUS_LABELS[status].toLowerCase()}.`,
+      )
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Could not update the application.',
+      )
+    }
+  }
+
+  async function syncAcceptedTeams() {
+    setSyncingAccepted(true)
+    setActionError(null)
+    setStatusNotice(null)
+    try {
+      for (const app of acceptedWithoutTeam) {
+        await updateStatus(app.id, 'accepted')
+      }
+      setStatusNotice(
+        `${acceptedWithoutTeam.length} accepted ${acceptedWithoutTeam.length === 1 ? 'team was' : 'teams were'} added to Tournament teams as unpublished, unpaid teams.`,
+      )
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Could not add the accepted teams.',
+      )
+    } finally {
+      setSyncingAccepted(false)
+    }
+  }
 
   function exportTeamCsv() {
     const header = [
@@ -175,7 +298,7 @@ export function AdminApplicationsPage() {
       'status',
       'createdAt',
     ]
-    const rows = applications.map((a) =>
+    const rows = visibleTeamApplications.map((a) =>
       [
         a.teamName,
         a.organizationName,
@@ -229,7 +352,7 @@ export function AdminApplicationsPage() {
       'status',
       'createdAt',
     ]
-    const rows = refereeApplications.map((a) =>
+    const rows = visibleRefereeApplications.map((a) =>
       [
         a.firstName,
         a.lastName,
@@ -289,6 +412,22 @@ export function AdminApplicationsPage() {
         </p>
       ) : null}
       {loading || refLoading ? <p>Loading applications…</p> : null}
+      {actionError ? (
+        <p className="admin-notice admin-notice--error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
+      {statusNotice ? (
+        <p className="admin-notice" role="status">
+          {statusNotice}
+          {statusNotice.includes('Tournament teams') ? (
+            <>
+              {' '}
+              <Link to="/admin/teams">Open Tournament teams</Link>
+            </>
+          ) : null}
+        </p>
+      ) : null}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <Button
@@ -307,11 +446,166 @@ export function AdminApplicationsPage() {
         </Button>
       </div>
 
-      <p className="admin-table__hint">Tap a row to read the full application.</p>
-
       {tab === 'team' ? (
         <>
-          <table className="admin-table">
+          <div className="admin-card-grid admin-card-grid--compact">
+            <div className="admin-card">
+              <strong className="tabular">{applications.length}</strong>
+              Total applications
+            </div>
+            <div className="admin-card">
+              <strong className="tabular">{awaitingReview}</strong>
+              Awaiting review
+            </div>
+            <div className="admin-card">
+              <strong className="tabular">{accepted}</strong>
+              Accepted
+            </div>
+            <div className="admin-card">
+              <strong className="tabular">
+                {applications.filter((app) => app.status === 'waitlisted').length}
+              </strong>
+              Waitlisted
+            </div>
+          </div>
+
+          {acceptedWithoutTeam.length > 0 ? (
+            <div className="admin-sync-callout">
+              <div>
+                <strong>
+                  {acceptedWithoutTeam.length}{' '}
+                  {acceptedWithoutTeam.length === 1
+                    ? 'accepted application is'
+                    : 'accepted applications are'}{' '}
+                  not in Tournament teams yet.
+                </strong>
+                <p>
+                  These were accepted before the team-creation workflow was added.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={syncingAccepted}
+                onClick={() => void syncAcceptedTeams()}
+              >
+                {syncingAccepted
+                  ? 'Adding teams…'
+                  : `Add ${acceptedWithoutTeam.length} to Tournament teams`}
+              </Button>
+            </div>
+          ) : null}
+
+          <section
+            className="admin-section"
+            aria-labelledby="division-summary-title"
+          >
+            <div className="admin-section__heading">
+              <div>
+                <h2 id="division-summary-title">Applications by division</h2>
+                <p>Accepted teams count toward each division's capacity.</p>
+              </div>
+            </div>
+            <div className="admin-table-wrap">
+              <table className="admin-table admin-table--summary">
+                <thead>
+                  <tr>
+                    <th>Division</th>
+                    <th>Applications</th>
+                    <th>Accepted</th>
+                    <th>Capacity</th>
+                    <th>Open spots</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {divisions.map((division) => {
+                    const divisionApps = applications.filter(
+                      (app) => app.divisionCode === division.code,
+                    )
+                    const divisionAccepted = divisionApps.filter(
+                      (app) => app.status === 'accepted',
+                    ).length
+                    return (
+                      <tr key={division.id}>
+                        <td>
+                          <strong>{division.name}</strong>
+                        </td>
+                        <td>{divisionApps.length}</td>
+                        <td>{divisionAccepted}</td>
+                        <td>{division.capacity}</td>
+                        <td>
+                          {Math.max(division.capacity - divisionAccepted, 0)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div className="admin-filters" aria-label="Filter team applications">
+            <label>
+              <span>Search</span>
+              <TextInput
+                type="search"
+                value={teamQuery}
+                placeholder="Team, contact, email, city…"
+                onChange={(event) => setTeamQuery(event.target.value)}
+              />
+            </label>
+            <label>
+              <span>Status</span>
+              <TextSelect
+                value={teamStatus}
+                onChange={(event) =>
+                  setTeamStatus(event.target.value as ApplicationStatus | 'all')
+                }
+              >
+                <option value="all">All statuses</option>
+                {APPLICATION_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {APPLICATION_STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </TextSelect>
+            </label>
+            <label>
+              <span>Division</span>
+              <TextSelect
+                value={teamDivision}
+                onChange={(event) =>
+                  setTeamDivision(event.target.value as DivisionCode | 'all')
+                }
+              >
+                <option value="all">All divisions</option>
+                {divisions.map((division) => (
+                  <option key={division.id} value={division.code}>
+                    {division.name}
+                  </option>
+                ))}
+              </TextSelect>
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setTeamQuery('')
+                setTeamStatus('all')
+                setTeamDivision('all')
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+          <p className="admin-table__hint">
+            Showing {visibleTeamApplications.length} of {applications.length}.
+            Tap a row to read the full application.
+          </p>
+
+          <div className="admin-table-wrap">
+            <table className="admin-table">
             <thead>
               <tr>
                 <th>Team</th>
@@ -322,7 +616,7 @@ export function AdminApplicationsPage() {
               </tr>
             </thead>
             <tbody>
-              {applications.map((app) => (
+              {visibleTeamApplications.map((app) => (
                 <tr
                   key={app.id}
                   className="admin-table__row--clickable"
@@ -360,12 +654,15 @@ export function AdminApplicationsPage() {
                       value={app.status}
                       aria-label={`Status for ${app.teamName}`}
                       onChange={(e) =>
-                        updateStatus(app.id, e.target.value as ApplicationStatus)
+                        void changeTeamStatus(
+                          app,
+                          e.target.value as ApplicationStatus,
+                        )
                       }
                     >
-                      {statuses.map((s) => (
+                      {APPLICATION_STATUSES.map((s) => (
                         <option key={s} value={s}>
-                          {s}
+                          {APPLICATION_STATUS_LABELS[s]}
                         </option>
                       ))}
                     </select>
@@ -374,12 +671,79 @@ export function AdminApplicationsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
           {applications.length === 0 ? <p>No team applications yet.</p> : null}
+          {applications.length > 0 && visibleTeamApplications.length === 0 ? (
+            <p>No team applications match these filters.</p>
+          ) : null}
         </>
       ) : (
         <>
-          <table className="admin-table">
+          <div
+            className="admin-filters"
+            aria-label="Filter referee applications"
+          >
+            <label>
+              <span>Search</span>
+              <TextInput
+                type="search"
+                value={refereeQuery}
+                placeholder="Name, email, society…"
+                onChange={(event) => setRefereeQuery(event.target.value)}
+              />
+            </label>
+            <label>
+              <span>Status</span>
+              <TextSelect
+                value={refereeStatus}
+                onChange={(event) =>
+                  setRefereeStatus(event.target.value as ApplicationStatus | 'all')
+                }
+              >
+                <option value="all">All statuses</option>
+                {APPLICATION_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {APPLICATION_STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </TextSelect>
+            </label>
+            <label>
+              <span>Division</span>
+              <TextSelect
+                value={refereeDivision}
+                onChange={(event) =>
+                  setRefereeDivision(event.target.value as DivisionCode | 'all')
+                }
+              >
+                <option value="all">All divisions</option>
+                {divisions.map((division) => (
+                  <option key={division.id} value={division.code}>
+                    {division.name}
+                  </option>
+                ))}
+              </TextSelect>
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setRefereeQuery('')
+                setRefereeStatus('all')
+                setRefereeDivision('all')
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+          <p className="admin-table__hint">
+            Showing {visibleRefereeApplications.length} of{' '}
+            {refereeApplications.length}. Tap a row to read the full application.
+          </p>
+          <div className="admin-table-wrap">
+            <table className="admin-table">
             <thead>
               <tr>
                 <th>Official</th>
@@ -391,7 +755,7 @@ export function AdminApplicationsPage() {
               </tr>
             </thead>
             <tbody>
-              {refereeApplications.map((app) => (
+              {visibleRefereeApplications.map((app) => (
                 <tr
                   key={app.id}
                   className="admin-table__row--clickable"
@@ -437,9 +801,9 @@ export function AdminApplicationsPage() {
                         )
                       }
                     >
-                      {statuses.map((s) => (
+                      {APPLICATION_STATUSES.map((s) => (
                         <option key={s} value={s}>
-                          {s}
+                          {APPLICATION_STATUS_LABELS[s]}
                         </option>
                       ))}
                     </select>
@@ -448,9 +812,14 @@ export function AdminApplicationsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
           {refereeApplications.length === 0 ? (
             <p>No referee applications yet.</p>
+          ) : null}
+          {refereeApplications.length > 0 &&
+          visibleRefereeApplications.length === 0 ? (
+            <p>No referee applications match these filters.</p>
           ) : null}
         </>
       )}
@@ -460,7 +829,7 @@ export function AdminApplicationsPage() {
           kind="team"
           app={openTeam}
           onClose={() => setSelectedTeam(null)}
-          onStatusChange={(status) => void updateStatus(openTeam.id, status)}
+          onStatusChange={(status) => void changeTeamStatus(openTeam, status)}
         />
       ) : null}
       {openReferee ? (
@@ -515,11 +884,37 @@ export function AdminTeamsPage() {
 
   return (
     <div>
-      <h1>Teams</h1>
+      <h1>Tournament teams</h1>
       <p>
-        Teams are stored in Firestore. Coach and player roster forms stay locked
-        until accepted managers get access later.
+        This is the working tournament roster, not the application inbox.
+        Accepting a team application creates an unpublished, unpaid team here.
+        Use this section to track payment, complete the team profile, and decide
+        when the team is ready to publish on the public site.
       </p>
+      <div className="admin-card-grid admin-card-grid--compact">
+        <div className="admin-card">
+          <strong className="tabular">{teams.length}</strong>
+          Tournament teams
+        </div>
+        <div className="admin-card">
+          <strong className="tabular">
+            {teams.filter((team) => team.published).length}
+          </strong>
+          Published
+        </div>
+        <div className="admin-card">
+          <strong className="tabular">
+            {teams.filter((team) => team.paymentStatus === 'paid').length}
+          </strong>
+          Paid
+        </div>
+        <div className="admin-card">
+          <strong className="tabular">
+            {teams.filter((team) => team.paymentStatus !== 'paid').length}
+          </strong>
+          Payment outstanding
+        </div>
+      </div>
       {error ? (
         <p role="alert" style={{ color: 'var(--color-danger, #c62828)' }}>
           {error}

@@ -214,6 +214,20 @@
   font-size: 0.9rem;
 }
 
+.admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+}
+
+.admin-table-wrap .admin-table {
+  min-width: 46rem;
+}
+
+.admin-table--summary {
+  min-width: 36rem !important;
+}
+
 .admin-table th,
 .admin-table td {
   border-bottom: 1px solid var(--color-border);
@@ -250,6 +264,11 @@
   margin: 1.25rem 0;
 }
 
+.admin-card-grid--compact {
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 0.75rem;
+}
+
 .admin-card {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -266,6 +285,93 @@
 .admin-card span {
   color: var(--color-text-secondary);
   font-size: 0.9rem;
+}
+
+.admin-section {
+  margin: 1.5rem 0;
+}
+
+.admin-section__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-section__heading h2,
+.admin-section__heading p {
+  margin: 0;
+}
+
+.admin-section__heading p {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.admin-filters {
+  display: grid;
+  grid-template-columns: minmax(12rem, 2fr) repeat(2, minmax(9rem, 1fr)) auto;
+  align-items: end;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0.75rem;
+  padding: 1rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+}
+
+.admin-filters label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.admin-filters label > span {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.admin-notice {
+  padding: 0.8rem 1rem;
+  border-left: 4px solid var(--color-brand-primary);
+  background: rgba(var(--color-brand-primary-rgb), 0.1);
+  color: var(--color-text) !important;
+}
+
+.admin-notice--error {
+  border-left-color: var(--color-danger, #c62828);
+}
+
+.admin-sync-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--color-brand-primary);
+  background: rgba(var(--color-brand-primary-rgb), 0.08);
+}
+
+.admin-sync-callout p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 720px) {
+  .admin-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filters .btn {
+    justify-self: start;
+  }
+
+  .admin-sync-callout {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 /* Application detail modal */

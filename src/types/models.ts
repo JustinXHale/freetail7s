@@ -113,6 +113,8 @@ export interface MailingAddress {
 export interface TeamDoc {
   id: string
   eventId: string
+  /** Application that created this tournament team record, when applicable. */
+  applicationId?: string
   organizationId?: string
   divisionId: string
   divisionCode: DivisionCode

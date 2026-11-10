@@ -19,7 +19,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Intake',
     items: [
       { to: '/admin/applications', label: 'Applications' },
-      { to: '/admin/teams', label: 'Teams' },
+      { to: '/admin/teams', label: 'Tournament teams' },
     ],
   },
   {

@@ -14,6 +14,7 @@ import type {
 } from '../types/models'
 import { EVENT_ID } from '../lib/collections'
 import {
+  acceptTeamApplication,
   createRefereeApplication,
   createTeamApplications,
   subscribeRefereeApplications,
@@ -359,16 +360,89 @@ export function useApplications() {
       })
       return id
     },
-    updateStatus: async (id: string, status: ApplicationStatus) => {
+    updateStatus: async (
+      id: string,
+      status: ApplicationStatus,
+      existingTeamId?: string,
+    ) => {
+      const application = (usingDemo ? state.applications : remote).find(
+        (item) => item.id === id,
+      )
+      if (!application) throw new Error('Application not found.')
       if (usingDemo) {
-        setState((prev) => ({
-          ...prev,
-          applications: prev.applications.map((a) =>
-            a.id === id
-              ? { ...a, status, updatedAt: new Date().toISOString() }
-              : a,
-          ),
-        }))
+        const now = new Date().toISOString()
+        setState((prev) => {
+          const linkedTeam = prev.teams.find(
+            (team) =>
+              team.id === existingTeamId ||
+              team.applicationId === application.id ||
+              (team.divisionCode === application.divisionCode &&
+                team.name.trim().toLowerCase() ===
+                  application.teamName.trim().toLowerCase()),
+          )
+          const teams: TeamDoc[] =
+            status !== 'accepted'
+              ? prev.teams
+              : linkedTeam
+                ? prev.teams.map((team) =>
+                    team.id === linkedTeam.id
+                      ? {
+                          ...team,
+                          applicationId: application.id,
+                          managerUserIds: application.submittedByUid
+                            ? Array.from(
+                                new Set([
+                                  ...team.managerUserIds,
+                                  application.submittedByUid,
+                                ]),
+                              )
+                            : team.managerUserIds,
+                          updatedAt: now,
+                        }
+                      : team,
+                  )
+                : [
+                  ...prev.teams,
+                  {
+                    id: `team-${application.id}`,
+                    eventId: application.eventId,
+                    applicationId: application.id,
+                    divisionId: application.divisionCode,
+                    divisionCode: application.divisionCode,
+                    name: application.teamName,
+                    slug:
+                      application.teamName
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-|-$/g, '') || `team-${application.id}`,
+                    location: application.hometown,
+                    hometown: application.hometown,
+                    mailingAddress: application.mailingAddress,
+                    website: application.website,
+                    instagram: application.instagram,
+                    facebook: application.facebook,
+                    published: false,
+                    paymentStatus: 'unpaid',
+                    managerUserIds: application.submittedByUid
+                      ? [application.submittedByUid]
+                      : [],
+                    rosterAccess: 'shell',
+                    createdAt: now,
+                    updatedAt: now,
+                  },
+                ]
+          return {
+            ...prev,
+            applications: prev.applications.map((a) =>
+              a.id === id ? { ...a, status, updatedAt: now } : a,
+            ),
+            teams,
+          }
+        })
+        return
+      }
+      if (status === 'accepted') {
+        await acceptTeamApplication(application, existingTeamId)
         return
       }
       await updateApplicationStatus(id, status)

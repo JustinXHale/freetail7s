@@ -1,8 +1,10 @@
 import {
   addDoc,
+  arrayUnion,
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   updateDoc,
   where,
   doc,
@@ -156,6 +158,72 @@ export async function updateApplicationStatus(
   await updateDoc(doc(db, 'applications', id), {
     status,
     updatedAt: new Date().toISOString(),
+  })
+}
+
+/**
+ * Accept an application and create its private tournament-team workspace in a
+ * single write. A deterministic team id makes repeat acceptance idempotent.
+ */
+export async function acceptTeamApplication(
+  application: ApplicationDoc,
+  existingTeamId?: string,
+): Promise<void> {
+  const now = new Date().toISOString()
+  const teamId = existingTeamId ?? `team-${application.id}`
+  const slug = application.teamName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+  const applicationRef = doc(db, 'applications', application.id)
+  const teamRef = doc(db, 'teams', teamId)
+
+  await runTransaction(db, async (transaction) => {
+    const existingTeam = await transaction.get(teamRef)
+    transaction.update(applicationRef, {
+      status: 'accepted',
+      updatedAt: now,
+    })
+    if (existingTeam.exists()) {
+      transaction.update(
+        teamRef,
+        stripUndefined({
+          applicationId: application.id,
+          managerUserIds: application.submittedByUid
+            ? arrayUnion(application.submittedByUid)
+            : undefined,
+          updatedAt: now,
+        }),
+      )
+      return
+    }
+
+    transaction.set(
+      teamRef,
+      stripUndefined({
+        id: teamId,
+        eventId: application.eventId,
+        applicationId: application.id,
+        divisionId: application.divisionCode,
+        divisionCode: application.divisionCode,
+        name: application.teamName.trim(),
+        slug: slug || teamId,
+        location: application.hometown,
+        hometown: application.hometown,
+        mailingAddress: application.mailingAddress,
+        website: application.website,
+        instagram: application.instagram,
+        facebook: application.facebook,
+        published: false,
+        paymentStatus: 'unpaid',
+        managerUserIds: application.submittedByUid
+          ? [application.submittedByUid]
+          : [],
+        rosterAccess: 'shell',
+        createdAt: now,
+        updatedAt: now,
+      }),
+    )
   })
 }
 
