@@ -11,6 +11,7 @@ import type {
   MvpNomineeDoc,
   RefereeApplicationDoc,
   TeamDoc,
+  UserRole,
 } from '../types/models'
 import { EVENT_ID } from '../lib/collections'
 import {
@@ -36,6 +37,59 @@ import {
   updateTeam,
   type TeamUpdateInput,
 } from '../lib/firestoreTeams'
+import {
+  setAdminUserRole,
+  subscribeUsers,
+  type AdminUserRecord,
+} from '../lib/firestoreUsers'
+
+export function useAdminUsers() {
+  const { profile } = useAuth()
+  const { usingDemo } = useDemo()
+  const [remote, setRemote] = useState<AdminUserRecord[]>([])
+  const [loading, setLoading] = useState(!usingDemo)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (usingDemo) {
+      setLoading(false)
+      setError(null)
+      return
+    }
+    setLoading(true)
+    return subscribeUsers(
+      (users) => {
+        setRemote(users)
+        setLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error(err)
+        setError(
+          err.message.includes('permission')
+            ? 'Cannot load users. Confirm your account role is admin.'
+            : err.message,
+        )
+        setLoading(false)
+      },
+    )
+  }, [usingDemo])
+
+  const demoUsers: AdminUserRecord[] = profile ? [profile] : []
+
+  return {
+    users: usingDemo ? demoUsers : remote,
+    currentUserId: profile?.uid ?? null,
+    loading,
+    error,
+    setRole: async (user: AdminUserRecord, role: UserRole) => {
+      if (usingDemo) {
+        throw new Error('Role changes require a connected Firebase project.')
+      }
+      await setAdminUserRole(user.uid, role, user.teamId)
+    },
+  }
+}
 
 export function useEvent() {
   const { state, usingDemo } = useDemo()

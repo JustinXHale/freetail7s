@@ -359,6 +359,48 @@
   font-size: 0.9rem;
 }
 
+.admin-user-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.admin-user-toolbar label {
+  display: grid;
+  gap: 0.35rem;
+  width: min(100%, 26rem);
+}
+
+.admin-user-toolbar label > span,
+.admin-user-toolbar > span,
+.admin-user-help {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+.admin-user-tag {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--color-brand-primary);
+  border-radius: 999px;
+  color: var(--color-brand-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-users-table .field__control {
+  min-width: 10rem;
+}
+
+.admin-user-help {
+  margin-top: 0.35rem;
+  max-width: 18rem;
+}
+
 @media (max-width: 720px) {
   .admin-filters {
     grid-template-columns: 1fr;
@@ -370,6 +412,11 @@
 
   .admin-sync-callout {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-user-toolbar {
+    align-items: stretch;
     flex-direction: column;
   }
 }

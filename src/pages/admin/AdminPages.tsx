@@ -15,6 +15,7 @@ import {
   useAdminMatches,
   useAdminMvp,
   useAdminTeams,
+  useAdminUsers,
   useApplications,
   useDivisions,
   useEvent,
@@ -31,6 +32,7 @@ import type {
   MvpNomineeDoc,
   PaymentStatus,
   RefereeApplicationDoc,
+  UserRole,
 } from '../../types/models'
 import {
   REFEREE_POSITION_LABELS,
@@ -54,6 +56,15 @@ const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   accepted: 'Accepted',
   waitlisted: 'Waitlisted',
   declined: 'Declined',
+}
+
+const USER_ROLES: UserRole[] = ['admin', 'teamManager', 'referee', 'fan']
+
+const USER_ROLE_LABELS: Record<UserRole, string> = {
+  admin: 'Admin',
+  teamManager: 'Team manager',
+  referee: 'Referee',
+  fan: 'Fan',
 }
 
 function AdminHubTabs({
@@ -1701,15 +1712,213 @@ export function AdminUsersPage({
 }: {
   embedded?: boolean
 } = {}) {
+  const { users, currentUserId, loading, error, setRole } = useAdminUsers()
+  const [query, setQuery] = useState('')
+  const [draftRoles, setDraftRoles] = useState<Record<string, UserRole>>({})
+  const [pendingUid, setPendingUid] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const visibleUsers = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return users
+    return users.filter((user) =>
+      [user.firstName, user.lastName, user.displayName ?? '', user.email ?? '']
+        .join(' ')
+        .toLowerCase()
+        .includes(needle),
+    )
+  }, [query, users])
+
+  async function saveRole(
+    user: (typeof users)[number],
+    nextRole: UserRole,
+  ) {
+    const name =
+      `${user.firstName} ${user.lastName}`.trim() || user.email || 'this user'
+    const message =
+      nextRole === 'admin'
+        ? `Grant ${name} full admin access? They will be able to manage applications, teams, users, scores, content, and settings.`
+        : `Change ${name} from ${user.role} to ${USER_ROLE_LABELS[nextRole]}?`
+    if (!window.confirm(message)) return
+
+    setPendingUid(user.uid)
+    setActionError(null)
+    setNotice(null)
+    try {
+      await setRole(user, nextRole)
+      setDraftRoles((current) => {
+        const next = { ...current }
+        delete next[user.uid]
+        return next
+      })
+      setNotice(`${name} is now ${USER_ROLE_LABELS[nextRole]}.`)
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : 'Could not update the user role.',
+      )
+    } finally {
+      setPendingUid(null)
+    }
+  }
+
   return (
     <div>
       {embedded ? <h2>Users</h2> : <h1>Users</h1>}
       <p>
-        Promote users to admin, teamManager, referee, or fan via the{' '}
-        <code>setUserRole</code> callable (admin only). Admin cannot be chosen
-        during self-serve onboarding.
-        Documented in docs/AUTH-SETUP.md.
+        Manage access for people who have signed in at least once. Admins have
+        full tournament access; users cannot choose that role themselves.
       </p>
+      {error ? (
+        <p className="admin-notice admin-notice--error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {actionError ? (
+        <p className="admin-notice admin-notice--error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="admin-notice" role="status">
+          {notice}
+        </p>
+      ) : null}
+      {loading ? <p>Loading users…</p> : null}
+
+      <div className="admin-card-grid admin-card-grid--compact">
+        <div className="admin-card">
+          <strong className="tabular">{users.length}</strong>
+          Members
+        </div>
+        <div className="admin-card">
+          <strong className="tabular">
+            {
+              users.filter((user) =>
+                ['admin', 'owner', 'eventAdmin'].includes(user.role),
+              ).length
+            }
+          </strong>
+          Admins
+        </div>
+        <div className="admin-card">
+          <strong className="tabular">
+            {users.filter((user) => user.role === 'teamManager').length}
+          </strong>
+          Team managers
+        </div>
+        <div className="admin-card">
+          <strong className="tabular">
+            {users.filter((user) => user.role === 'referee').length}
+          </strong>
+          Referees
+        </div>
+      </div>
+
+      <div className="admin-user-toolbar">
+        <label>
+          <span>Search members</span>
+          <TextInput
+            type="search"
+            value={query}
+            placeholder="Name or email…"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        <span>
+          Showing {visibleUsers.length} of {users.length}
+        </span>
+      </div>
+
+      <div className="admin-table-wrap">
+        <table className="admin-table admin-users-table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Current access</th>
+              <th>Change role</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleUsers.map((user) => {
+              const assignable = USER_ROLES.includes(user.role as UserRole)
+              const isCurrentUser = user.uid === currentUserId
+              const currentRole = assignable ? (user.role as UserRole) : null
+              const draftRole =
+                draftRoles[user.uid] ?? currentRole ?? 'fan'
+              const displayName =
+                `${user.firstName} ${user.lastName}`.trim() ||
+                user.displayName ||
+                'Unnamed member'
+              return (
+                <tr key={user.uid}>
+                  <td>
+                    <strong>{displayName}</strong>
+                    <div>{user.email ?? 'No email available'}</div>
+                    {isCurrentUser ? (
+                      <span className="admin-user-tag">You</span>
+                    ) : null}
+                  </td>
+                  <td>
+                    {currentRole ? USER_ROLE_LABELS[currentRole] : user.role}
+                  </td>
+                  <td>
+                    <TextSelect
+                      aria-label={`Role for ${displayName}`}
+                      value={draftRole}
+                      disabled={isCurrentUser || !assignable || pendingUid !== null}
+                      onChange={(event) =>
+                        setDraftRoles((current) => ({
+                          ...current,
+                          [user.uid]: event.target.value as UserRole,
+                        }))
+                      }
+                    >
+                      {USER_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {USER_ROLE_LABELS[role]}
+                        </option>
+                      ))}
+                    </TextSelect>
+                    {isCurrentUser ? (
+                      <div className="admin-user-help">
+                        Your own access is protected.
+                      </div>
+                    ) : null}
+                    {!assignable ? (
+                      <div className="admin-user-help">
+                        This protected role is managed outside this screen.
+                      </div>
+                    ) : null}
+                  </td>
+                  <td>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={
+                        isCurrentUser ||
+                        !assignable ||
+                        pendingUid !== null ||
+                        draftRole === currentRole
+                      }
+                      onClick={() => void saveRole(user, draftRole)}
+                    >
+                      {pendingUid === user.uid ? 'Saving…' : 'Save role'}
+                    </Button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {!loading && users.length === 0 ? (
+        <p>No members yet. A person appears here after signing in once.</p>
+      ) : null}
+      {users.length > 0 && visibleUsers.length === 0 ? (
+        <p>No members match that search.</p>
+      ) : null}
     </div>
   )
 }

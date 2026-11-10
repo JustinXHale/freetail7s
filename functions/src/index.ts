@@ -273,7 +273,18 @@ export const setUserRole = onCall(async (request) => {
   if (typeof uid !== 'string' || !allowedRoles.includes(role)) {
     throw new HttpsError('invalid-argument', 'Invalid uid or role.')
   }
-  await db.doc(`users/${uid}`).set(
+  if (uid === request.auth?.uid && role !== 'admin') {
+    throw new HttpsError(
+      'failed-precondition',
+      'You cannot remove your own admin access.',
+    )
+  }
+  const userRef = db.doc(`users/${uid}`)
+  const before = await userRef.get()
+  if (!before.exists) {
+    throw new HttpsError('not-found', 'User not found.')
+  }
+  await userRef.set(
     {
       role,
       teamId: teamId ?? null,
@@ -282,5 +293,17 @@ export const setUserRole = onCall(async (request) => {
     },
     { merge: true },
   )
+  await db.collection('auditLogs').add({
+    actorUid: request.auth?.uid,
+    action: 'userRoleChanged',
+    entityType: 'user',
+    entityId: uid,
+    before: {
+      role: before.data()?.role ?? null,
+      teamId: before.data()?.teamId ?? null,
+    },
+    after: { role, teamId: teamId ?? null },
+    createdAt: FieldValue.serverTimestamp(),
+  })
   return { ok: true }
 })
